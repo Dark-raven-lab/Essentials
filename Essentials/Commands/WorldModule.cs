@@ -323,9 +323,10 @@ namespace Essentials.Commands
 
         [Command("sandbox clean", "Cleans up junk data from the sandbox file")]
         [Permission(MyPromoteLevel.SpaceMaster)]
-        public void CleanSandbox()
+        public void CleanSandbox(int keepDays = 30)
         {
             int count = 0;
+            var seenAfter = DateTime.Now - TimeSpan.FromDays(keepDays);
             var validIdentities = new HashSet<long>();
             var idCache = new HashSet<long>();
 
@@ -360,6 +361,15 @@ namespace Essentials.Commands
                     continue;
                 }
 
+                //a player with no blocks in the world may have everything in the garage: removing the identity takes
+                //their faction, money, GPS and, with the garage purge, the stored grids
+                if (IsRecentPlayer(identity, seenAfter))
+                {
+                    validIdentities.Add(identity.IdentityId);
+                    continue;
+                }
+
+                _log.Info($"sandbox clean: removing identity '{identity.DisplayName}' ({identity.IdentityId}), last login {identity.LastLoginTime}");
                 RemoveFromFaction_Internal(identity);
                 MySession.Static.Players.RemoveIdentity(identity.IdentityId);
                 validIdentities.Remove(identity.IdentityId);
@@ -374,7 +384,7 @@ namespace Essentials.Commands
 
             //cleanup reputations
 
-            count += CleanupReputations();
+            count += CleanupReputations(seenAfter);
 
 
             //Keen, for the love of god why is everything about GPS internal.
@@ -427,7 +437,7 @@ namespace Essentials.Commands
             count += cf.Count;
             cf.Clear();
 
-            Context.Respond($"Removed {count} unnecessary elements.");
+            Context.Respond($"Removed {count} unnecessary elements. Players with no blocks are removed only after {keepDays} days offline.");
         }
 
         [ReflectedGetter(Name = "m_relationsBetweenFactions", Type = typeof(MyFactionCollection))]
@@ -462,7 +472,16 @@ namespace Essentials.Commands
             return result;
 
         }
-        private static int CleanupReputations()
+
+        //a player's serial id is 0, the serial ids of the game's bots start at 1
+        private static bool IsRecentPlayer(MyIdentity identity, DateTime seenAfter)
+        {
+            MySession.Static.Players.TryGetPlayerId(identity.IdentityId, out var playerId);
+            var lastSeen = identity.LastLogoutTime > identity.LastLoginTime ? identity.LastLogoutTime : identity.LastLoginTime;
+            return playerId.SerialId == 0 && playerId.SteamId != 0 && lastSeen >= seenAfter;
+        }
+
+        private static int CleanupReputations(DateTime seenAfter)
         {
             var collection = _relationsGet(MySession.Static.Factions);
             var collection2 = _playerRelationsGet(MySession.Static.Factions);
@@ -488,7 +507,7 @@ namespace Essentials.Commands
 
             foreach (var identity in MySession.Static.Players.GetAllIdentities().ToList())
             {
-                if (MySession.Static.Players.IdentityIsNpc(identity.IdentityId))
+                if (MySession.Static.Players.IdentityIsNpc(identity.IdentityId) || IsRecentPlayer(identity, seenAfter))
                 {
                     validIdentities.Add(identity.IdentityId);
                 }
