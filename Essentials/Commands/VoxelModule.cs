@@ -58,7 +58,7 @@ namespace Essentials.Commands
             var voxelMaps = MyEntities.GetEntities().OfType<MyVoxelBase>();
 
             var resetIds = new List<long>();
-            int count = 0;
+            int deleted = 0;
 
             foreach (var map in voxelMaps)
             {
@@ -67,14 +67,13 @@ namespace Essentials.Commands
                     if (map.StorageName == null || map.Storage.DataProvider == null)
                         continue;
 
-                    count++;
-
                     long id = map.EntityId;
 
                     if (deleteStorage && map is MyVoxelMap)
                     {
                         using (PinDelete())
                             map.Close();
+                        deleted++;
                     }
                     else
                     {
@@ -90,7 +89,7 @@ namespace Essentials.Commands
 
             ModCommunication.SendMessageToClients(new VoxelResetMessage(resetIds.ToArray()));
 
-            Context.Respond($"Reset {count} voxel maps.");
+            Context.Respond($"Reset {resetIds.Count} voxel maps, deleted {deleted}.");
         }
 
         [Command("cleanup asteroids", "Resets all asteroids that don't have a grid or player nearby.")]
@@ -99,7 +98,7 @@ namespace Essentials.Commands
             var voxelMaps = MyEntities.GetEntities().OfType<MyVoxelMap>();
 
             var resetIds = new List<long>();
-            int count = 0;
+            int deleted = 0;
 
             foreach (var map in voxelMaps)
             {
@@ -116,14 +115,13 @@ namespace Essentials.Commands
                     if (nearEntities.Any(e => e is MyCubeGrid || e is MyCharacter))
                         continue;
 
-                    count++;
-
                     long id = map.EntityId;
 
                     if (deleteStorage)
                     {
                         using (PinDelete())
                             map.Close();
+                        deleted++;
                     }
                     else
                     {
@@ -139,7 +137,7 @@ namespace Essentials.Commands
 
             ModCommunication.SendMessageToClients(new VoxelResetMessage(resetIds.ToArray()));
 
-            Context.Respond($"Reset {count} voxel maps.");
+            Context.Respond($"Reset {resetIds.Count} voxel maps, deleted {deleted}.");
         }
 
         [Command("cleanup distant", "Resets all asteroids that don't have a grid or player inside the specified radius.")]
@@ -149,7 +147,7 @@ namespace Essentials.Commands
             var voxelMaps = MyEntities.GetEntities().OfType<MyVoxelMap>();
 
             var resetIds = new List<long>();
-            int count = 0;
+            int deleted = 0;
 
             foreach (var map in voxelMaps)
             {
@@ -166,14 +164,13 @@ namespace Essentials.Commands
                     if (nearEntities.Any(e => e is MyCubeGrid || e is MyCharacter))
                         continue;
 
-                    count++;
-
                     long id = map.EntityId;
 
                     if (deleteStorage)
                     {
                         using (PinDelete())
                             map.Close();
+                        deleted++;
                     }
                     else
                     {
@@ -189,7 +186,53 @@ namespace Essentials.Commands
 
             ModCommunication.SendMessageToClients(new VoxelResetMessage(resetIds.ToArray()));
 
-            Context.Respond($"Reset {count} voxel maps.");
+            Context.Respond($"Reset {resetIds.Count} voxel maps, deleted {deleted}.");
+        }
+
+        [Command("scan planets", "Shows how many changed voxel cells of the planets have no grid or player inside the specified radius.")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void ScanPlanets(double distance = 1000)
+        {
+            RunPlanetCleaner(distance, 0, false);
+        }
+
+        [Command("cleanup planets", "Reverts changed voxel cells of the planets that have no grid or player inside the specified radius.")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void CleanupPlanets(double distance = 1000, int maxCells = 50000)
+        {
+            RunPlanetCleaner(distance, maxCells, true);
+        }
+
+        private void RunPlanetCleaner(double distance, int maxCells, bool clean)
+        {
+            //written this way for NaN, which would turn off the protection of grids and players
+            if (!(distance >= 0) || double.IsInfinity(distance) || maxCells < 0)
+            {
+                Context.Respond("Distance must be a number, not negative, and maxCells can't be negative.");
+                return;
+            }
+
+            if (!PlanetVoxelCleaner.IsSupported)
+            {
+                Context.Respond("This game version is not supported: voxel storage fields not found. Nothing was changed.");
+                _log.Error("Planet voxel cleaner: voxel storage fields not found");
+                return;
+            }
+
+            var planets = PlanetVoxelCleaner.Run(distance, maxCells, clean);
+
+            var sb = new StringBuilder();
+            foreach (var p in planets)
+                sb.AppendLine($"{p.Name}: {p.ChangedCells:#,##0} changed cells, {p.ProtectedCells:#,##0} protected, {p.CleanableCells:#,##0} can be cleaned (up to {p.CleanableVoxels:#,##0} voxels){(p.Error == null ? "" : $", failed after cleaning {p.CleanedCells:#,##0}: {p.Error}")}");
+
+            if (clean)
+                sb.Append($"Cleaned {planets.Sum(p => p.CleanedCells):#,##0} of {planets.Sum(p => p.CleanableCells):#,##0} cells.");
+            else
+                sb.Append($"Total: {planets.Sum(p => p.CleanableCells):#,##0} cells can be cleaned.");
+
+            var report = sb.ToString();
+            Context.Respond(report);
+            _log.Info($"Planet voxels, distance {distance}, maxCells {maxCells}:\n{report}");
         }
 
         [Command("reset planets", "Resets all planets.")]
@@ -226,7 +269,7 @@ namespace Essentials.Commands
             var maps = new List<MyPlanet>(2);
             foreach (MyPlanet map in MyEntities.GetEntities().OfType<MyPlanet>())
             {
-                if (map.StorageName.Contains(planetName, StringComparison.CurrentCultureIgnoreCase))
+                if (map.StorageName?.Contains(planetName, StringComparison.CurrentCultureIgnoreCase) ?? false)
                     maps.Add(map);
             }
 
@@ -254,7 +297,10 @@ namespace Essentials.Commands
         public void ResetVoxelArea(float Radius)
         {
             if (Context.Player == null)
+            {
                 Context.Respond("Invalid command input! Must be ingame!");
+                return;
+            }
 
 
             if (Radius <= 0)
@@ -283,7 +329,7 @@ namespace Essentials.Commands
             Vector3D ResetTarget = new Vector3D(X, Y, Z);
             if (Radius <= 0)
             {
-                _log.Info("Invalid Radius Input!");
+                Context.Respond("Invalid radius!");
                 return;
             }
 
