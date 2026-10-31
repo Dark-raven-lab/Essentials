@@ -325,6 +325,13 @@ namespace Essentials.Commands
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void CleanSandbox(int keepDays = 30)
         {
+            //0 or less would remove every offline player with no blocks, too many days don't fit in a DateTime
+            if (keepDays < 1 || keepDays > 36500)
+            {
+                Context.Respond("keepDays must be between 1 and 36500.");
+                return;
+            }
+
             int count = 0;
             var seenAfter = DateTime.Now - TimeSpan.FromDays(keepDays);
             var validIdentities = new HashSet<long>();
