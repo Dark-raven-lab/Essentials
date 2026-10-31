@@ -152,7 +152,44 @@ namespace Essentials
             return null;
         }
 
-        public static ulong GetSteamId(long identityId) 
+        //a player's serial id is 0, the serial ids of the game's bots start at 1
+        public static bool TryGetHumanPlayerId(long identityId, out MyPlayer.PlayerId playerId)
+        {
+            return MySession.Static.Players.TryGetPlayerId(identityId, out playerId) && playerId.SteamId != 0 && playerId.SerialId == 0;
+        }
+
+        /// <summary>
+        /// Finds any human player of the world, online or not. Of the players with the same name the one online comes first.
+        /// </summary>
+        public static bool TryGetPlayerByNameOrSteamId(string nameOrSteamId, out ulong steamId, out string name)
+        {
+            ulong.TryParse(nameOrSteamId, out var parsedId);
+            steamId = 0;
+            name = null;
+
+            foreach (var identity in MySession.Static.Players.GetAllIdentities())
+            {
+                if (!TryGetHumanPlayerId(identity.IdentityId, out var playerId))
+                    continue;
+
+                if (identity.DisplayName != nameOrSteamId && playerId.SteamId != parsedId)
+                    continue;
+
+                var online = MySession.Static.Players.IsPlayerOnline(identity.IdentityId);
+                if (steamId == 0 || online)
+                {
+                    steamId = playerId.SteamId;
+                    name = identity.DisplayName;
+                }
+
+                if (online)
+                    break;
+            }
+
+            return steamId != 0;
+        }
+
+        public static ulong GetSteamId(long identityId)
         {
             return MySession.Static.Players.TryGetSteamId(identityId);
         }

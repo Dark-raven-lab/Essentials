@@ -56,6 +56,7 @@ namespace Essentials
         private PatchManager _pm;
         private PatchContext _context;
         private KnownIdsStorage _knownIds;
+        public MuteStorage Mutes { get; private set; }
 
         public static EssentialsPlugin Instance { get; private set; }
         public PlayerAccountModule AccModule = new PlayerAccountModule();
@@ -79,6 +80,7 @@ namespace Essentials
             _config = Persistent<EssentialsConfig>.Load(path);
             _knownIds = new KnownIdsStorage(Path.Combine(StoragePath, "Essentials.KnownSteamIds.txt"));
             _knownIds.Read();
+            Mutes = new MuteStorage(Path.Combine(StoragePath, "Essentials.Mutes.txt"));
             _sessionManager = Torch.Managers.GetManager<TorchSessionManager>();
             if (_sessionManager != null)
                 _sessionManager.SessionStateChanged += SessionChanged;
@@ -102,6 +104,7 @@ namespace Essentials
             _pm = torch.Managers.GetManager<PatchManager>();
             _context = _pm.AcquireContext();
             SessionDownloadPatch.Patch(_context);
+            MuteNoticePatch.Patch(_context);
             
             if (Config.CutGameTags)
                 GameTagsPatch.Patch(_context);
@@ -161,6 +164,7 @@ namespace Essentials
                                                });
                     AutoCommands.Instance.Start();
                     InfoModule.Init();
+                    Mutes.Start();
                     _initilized = true;
 
 
@@ -180,6 +184,7 @@ namespace Essentials
                     }
 
 
+                    Mutes.Stop();
                     _bagTracker.Clear();
                     _removalTracker.Clear();
                     break;
@@ -255,6 +260,7 @@ namespace Essentials
         public override void Update()
         {
             ProcessBags();
+            Mutes.Update();
         }
 
         private void StopShips()

@@ -32,7 +32,7 @@ namespace Essentials.Commands
         private static readonly Logger Log = LogManager.GetLogger("Essentials Voting");
         private static AutoCommand _command;
         private static string voteInProgress;
-        private static readonly Dictionary<ulong, DateTime> _voteReg = new Dictionary<ulong, DateTime>();
+        private static readonly HashSet<ulong> _voteReg = new HashSet<ulong>();
         private static readonly HashSet<ulong> _voteAgainst = new HashSet<ulong>();
         private static readonly Dictionary<ulong, DateTime> _voteCooldown = new Dictionary<ulong, DateTime>();
         public static Status VoteStatus = Status.voteStandby;
@@ -196,21 +196,10 @@ namespace Essentials.Commands
             }
 
             var steamid = Context.Player.SteamUserId;
-            if (_voteReg.TryGetValue(steamid, out var lastcommand))
+            if (!_voteReg.Add(steamid))
             {
-                var difference = DateTime.Now - lastcommand;
-                var _voteDuration = TimeSpan.Parse(_command.Interval);
-                if (difference.TotalSeconds < _voteDuration.TotalSeconds)
-                {
-                    Context.Respond("Ваш голос за уже учтён");
-                    return;
-                }
-
-                _voteReg[steamid] = DateTime.Now;
-            }
-            else
-            {
-                _voteReg.Add(steamid, DateTime.Now);
+                Context.Respond("Ваш голос за уже учтён");
+                return;
             }
 
             _voteAgainst.Remove(steamid);
@@ -291,7 +280,7 @@ namespace Essentials.Commands
                     var online = Utilities.GetOnlinePlayerCount();
                     var summary = $"за {votes}, против {_voteAgainst.Count}, онлайн {online}, нужно {GetRequiredVotes(online)}";
                     double vr = (double)votes / online;
-                    if (vr >= _command.TriggerRatio && votes > _voteAgainst.Count)
+                    if (IsPassed(votes, online))
                     {
                         SendToChat($"Голосование {voteInProgress} прошло: {summary}");
                         voteResult = Status.voteSuccess;
@@ -331,35 +320,20 @@ namespace Essentials.Commands
         {
             var online = Utilities.GetOnlinePlayerCount();
             var required = GetRequiredVotes(online);
-            return $"{_voteReg.Count} из {required} {Plural(required, "нужного голоса", "нужных голосов", "нужных голосов")}, против {_voteAgainst.Count} (онлайн {online})";
+            return $"{_voteReg.Count} из {required} {(required % 10 == 1 && required % 100 != 11 ? "нужного голоса" : "нужных голосов")}, против {_voteAgainst.Count} (онлайн {online})";
         }
 
-        //the same comparison as the result of the vote, so the number shown is the one that really passes it
+        private static bool IsPassed(int votes, int online)
+        {
+            return (double)votes / online >= _command.TriggerRatio && votes > _voteAgainst.Count;
+        }
+
         private static int GetRequiredVotes(int online)
         {
-            var votes = _voteAgainst.Count + 1;
-            while ((double)votes / online < _command.TriggerRatio)
+            var votes = 1;
+            while (!IsPassed(votes, online))
                 votes++;
             return votes;
-        }
-
-        private static string Plural(int num, string one, string few, string many)
-        {
-            var lastTwo = num % 100;
-            if (lastTwo >= 11 && lastTwo <= 14)
-                return many;
-
-            switch (num % 10)
-            {
-                case 1:
-                    return one;
-                case 2:
-                case 3:
-                case 4:
-                    return few;
-                default:
-                    return many;
-            }
         }
     }
 }

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Timers;
 using Sandbox;
 using Sandbox.Engine.Multiplayer;
 using Sandbox.Game.World;
@@ -292,91 +291,55 @@ namespace Essentials.Commands
             Context.Respond($"ID {id} removed from reserved slots.");
         }
 
-        private static Dictionary<ulong, DateTime> _muted;
-        private Timer _muteTimer;
-        private IChatManagerServer _chatManager;
-        private IChatManagerServer ChatManager => _chatManager ?? (EssentialsPlugin.Instance.Torch.CurrentSession.Managers.GetManager<IChatManagerServer>());
-        private List<ulong> _removeCache;
+        private IChatManagerServer ChatManager => EssentialsPlugin.Instance.Torch.CurrentSession.Managers.GetManager<IChatManagerServer>();
 
         [Command("mute", "Mutes a user in global chat for the given number of minutes.")]
         public void MuteUser(string user, int timeout = 0)
         {
-            if (_muteTimer == null)
+            if (!Utilities.TryGetPlayerByNameOrSteamId(user, out var steamId, out var name))
             {
-                _muteTimer = new Timer(1000);
-                _muteTimer.AutoReset = true;
-                _muteTimer.Elapsed += _muteTimer_Elapsed;
-                _muted = new Dictionary<ulong, DateTime>();
-                _removeCache = new List<ulong>();
-            }
-
-            var p = Utilities.GetPlayerByNameOrId(user);
-            if (p == null)
-            {
-                Context.Respond($"Could not find user {user}");
+                RespondUserNotFound(user);
                 return;
             }
 
+            var expiry = timeout > 0 ? DateTime.Now.AddMinutes(timeout) : (DateTime?)null;
 
-            bool res = ChatManager.MuteUser(p.SteamUserId);
-
-            if(!res)
-                Context.Respond($"Failed to mute user {user}. They are already muted.");
+            if (EssentialsPlugin.Instance.Mutes.Mute(steamId, expiry))
+                Context.Respond($"Muted user {name} ({steamId})");
             else
-                Context.Respond($"Muted user {p.DisplayName}");
-
-            if (timeout > 0)
-            {
-                lock (_muted)
-                    _muted[p.SteamUserId] = DateTime.Now + TimeSpan.FromMinutes(timeout);
-                _muteTimer.Start();
-            }
-        }
-
-        private void _muteTimer_Elapsed(object sender, ElapsedEventArgs e)
-        {
-            lock (_muted)
-            {
-                foreach (var p in _muted)
-                {
-                    if(p.Value > DateTime.Now)
-                        continue;
-
-                    _removeCache.Add(p.Key);
-                    ChatManager.UnmuteUser(p.Key);
-                }
-                foreach (var r in _removeCache)
-                {
-                    _muted.Remove(r);
-                }
-                _removeCache.Clear();
-
-                if (_muted.Count == 0)
-                    _muteTimer.Stop();
-            }
+                Context.Respond($"Updated the mute of user {name} ({steamId})");
         }
 
         [Command("unmute", "Removes a chat mute from a user, if they have been muted.")]
         public void UnmuteUser(string user)
         {
-            var p = Utilities.GetPlayerByNameOrId(user);
-            if (p == null)
+            if (!Utilities.TryGetPlayerByNameOrSteamId(user, out var steamId, out var name))
             {
-                Context.Respond($"Could not find user {user}");
-                return;
-            }
-            bool res = ChatManager.UnmuteUser(p.SteamUserId);
+                //a muted player can be gone from the world since, for example after !sandbox clean
+                if (!ulong.TryParse(user, out steamId) || !ChatManager.MutedUsers.Contains(steamId))
+                {
+                    RespondUserNotFound(user);
+                    return;
+                }
 
-            if (!res)
-                Context.Respond($"Failed to unmute user {user}. They are not muted.");
+                name = user;
+            }
+
+            if (!EssentialsPlugin.Instance.Mutes.Unmute(steamId))
+                Context.Respond($"Failed to unmute user {name}. They are not muted.");
             else
-                Context.Respond($"Unmuted user {p.DisplayName}");
+                Context.Respond($"Unmuted user {name} ({steamId})");
+        }
+
+        private void RespondUserNotFound(string user)
+        {
+            Context.Respond(ulong.TryParse(user, out _) ? $"SteamID {user} не найден в мире" : $"Could not find user {user}");
         }
 
         [Command("list mute", "Lists all muted users, an their timeout, if applciable.")]
         public void ListMute()
         {
-            if (_muted?.Count == 0 && ChatManager.MutedUsers.Count == 0)
+            if (ChatManager.MutedUsers.Count == 0)
             {
                 Context.Respond("No muted users.");
                 return;
@@ -389,13 +352,9 @@ namespace Essentials.Commands
                 var s = MySession.Static.Players.TryGetIdentityNameFromSteamId(m);
                 if(string.IsNullOrEmpty(s))
                     s = m.ToString();
-                bool f = false;
-                DateTime t = default(DateTime);
-                if(_muted != null)
-                    lock (_muted)
-                        f = _muted.TryGetValue(m, out t);
+                var t = EssentialsPlugin.Instance.Mutes.GetExpiry(m);
 
-                sb.AppendLine($"{s}: {(f ? (t - DateTime.Now).ToString(@"hh\:mm\:ss") : "inf")}");
+                sb.AppendLine($"{s}: {(t.HasValue ? (t.Value - DateTime.Now).ToString(@"d\.hh\:mm\:ss") : "inf")}");
             }
 
             if (Context.SentBySelf)

@@ -480,12 +480,10 @@ namespace Essentials.Commands
 
         }
 
-        //a player's serial id is 0, the serial ids of the game's bots start at 1
         private static bool IsRecentPlayer(MyIdentity identity, DateTime seenAfter)
         {
-            MySession.Static.Players.TryGetPlayerId(identity.IdentityId, out var playerId);
             var lastSeen = identity.LastLogoutTime > identity.LastLoginTime ? identity.LastLogoutTime : identity.LastLoginTime;
-            return playerId.SerialId == 0 && playerId.SteamId != 0 && lastSeen >= seenAfter;
+            return Utilities.TryGetHumanPlayerId(identity.IdentityId, out _) && lastSeen >= seenAfter;
         }
 
         private static int CleanupReputations(DateTime seenAfter)

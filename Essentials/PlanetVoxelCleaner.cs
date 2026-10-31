@@ -60,7 +60,6 @@ namespace Essentials
         {
             var result = new List<PlanetInfo>();
             var cellsLeft = maxCells > 0 ? maxCells : long.MaxValue;
-            var nearEntities = new List<MyEntity>();
 
             foreach (var planet in MyEntities.GetEntities().OfType<MyPlanet>().OrderBy(p => p.StorageName).ToList())
             {
@@ -73,7 +72,7 @@ namespace Essentials
                 //one planet failing can't lose the report of what was already reverted, or stop the others
                 try
                 {
-                    ProcessPlanet(planet, storage, distance, clean, ref cellsLeft, nearEntities, info);
+                    ProcessPlanet(planet, storage, distance, clean, ref cellsLeft, info);
                 }
                 catch (Exception e)
                 {
@@ -87,9 +86,10 @@ namespace Essentials
             return result;
         }
 
-        private static void ProcessPlanet(MyPlanet planet, MyOctreeStorage storage, double distance, bool clean, ref long cellsLeft, List<MyEntity> nearEntities, PlanetInfo info)
+        private static void ProcessPlanet(MyPlanet planet, MyOctreeStorage storage, double distance, bool clean, ref long cellsLeft, PlanetInfo info)
         {
             var toClean = new List<KeyValuePair<ulong, long>>();
+            var nearEntities = new List<MyEntity>();
 
             //the last changes are still in the write cache and would get into the save later
             if (storage.CachedWrites)
