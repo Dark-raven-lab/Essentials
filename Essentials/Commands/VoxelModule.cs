@@ -52,6 +52,23 @@ namespace Essentials.Commands
         private static MyProceduralAsteroidCellGenerator _generatorInstance;
         private static MyProceduralAsteroidCellGenerator GeneratorInstance => _generatorInstance ?? (_generatorInstance = _asteroidGenerator(MyProceduralWorldGenerator.Static));
 
+        [Command("help", "Lists all voxel commands.")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void Help()
+        {
+            var commands = EssentialsPlugin.Instance.CommandManager.Commands;
+            commands.GetNode(new List<string> { "voxels" }, out var voxels);
+
+            var sb = new StringBuilder();
+            foreach (var command in commands.WalkTree(voxels).Where(n => n.IsCommand).Select(n => n.Command).OrderBy(c => c.SyntaxHelp))
+            {
+                sb.AppendLine(command.SyntaxHelp);
+                sb.AppendLine($"   {command.HelpText}");
+            }
+
+            Context.Respond(sb.ToString());
+        }
+
         [Command("reset all", "Resets all voxel maps.")]
         public void ResetAll(bool deleteStorage = false)
         {
