@@ -33,6 +33,7 @@ namespace Essentials.Commands
         private static AutoCommand _command;
         private static string voteInProgress;
         private static readonly Dictionary<ulong, DateTime> _voteReg = new Dictionary<ulong, DateTime>();
+        private static readonly HashSet<ulong> _voteAgainst = new HashSet<ulong>();
         private static readonly Dictionary<ulong, DateTime> _voteCooldown = new Dictionary<ulong, DateTime>();
         public static Status VoteStatus = Status.voteStandby;
 
@@ -47,14 +48,21 @@ namespace Essentials.Commands
         {
             if (Context.Player == null)
             {
-                Context.Respond("This is an in-game command");
+                Context.Respond("Команда доступна только в игре");
+                return;
+            }
+
+            //a cancelled vote still has its countdown running until the next second
+            if (VoteStatus == Status.voteCancel)
+            {
+                Context.Respond($"Голосование {voteInProgress} отменяется, повторите через пару секунд");
                 return;
             }
 
             if (VoteStatus == Status.voteInProgress)
             {
                 Context.Respond(
-                    $"vote for {voteInProgress} is currently active. Use !yes to vote and !no to retract vote");
+                    $"Сейчас идёт голосование {voteInProgress}. Введите команды !yes или !no для учёта вашего голоса.");
                 return;
             }
 
@@ -63,7 +71,7 @@ namespace Essentials.Commands
 
             if (_command == null)
             {
-                Context.Respond($"Couldn't find any votable command with the name {name}");
+                Context.Respond($"Голосование {name} не найдено");
                 return;
             }
 
@@ -75,7 +83,7 @@ namespace Essentials.Commands
                 if (difference.TotalSeconds > 0)
                 {
                     Context.Respond(
-                        $"Cooldown active. You can use this command again in {difference.Minutes:N0} minutes : {difference.Seconds:N0} seconds");
+                        $"Перезарядка: команду можно использовать снова через {difference.Minutes:N0} мин. {difference.Seconds:N0} сек.");
                     return;
                 }
 
@@ -91,16 +99,25 @@ namespace Essentials.Commands
             // voting status
             voteInProgress = name;
             VoteStatus = Status.voteInProgress;
+            Log.Info($"Vote {name} started by {Context.Player.DisplayName} ({steamid})");
+            var announcement = $"Началось голосование {name}. Введите команды !yes или !no для учёта вашего голоса.";
+            SendToChat(announcement);
+            ModCommunication.SendMessageToClients(new NotificationMessage(announcement, 15000, "Blue"));
             VoteYes();
-            var sb = new StringBuilder();
-            sb.AppendLine($"Voting started for {name} by {Context.Player.DisplayName}.");
-            sb.AppendLine("Use !yes to vote and !no to retract your vote");
-            ModCommunication.SendMessageToClients(new NotificationMessage(sb.ToString(), 15000, "Blue"));
             //vote countdown
             Task.Run(() =>
             {
-                var countdown = VoteCountdown(voteDuration).GetEnumerator();
-                while (countdown.MoveNext()) Thread.Sleep(1000);
+                //without this a failed countdown would block all the next votes
+                try
+                {
+                    var countdown = VoteCountdown(voteDuration).GetEnumerator();
+                    while (countdown.MoveNext()) Thread.Sleep(1000);
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e, "Vote countdown failed");
+                    VoteEnd();
+                }
             });
 
             lastVoteName = voteInProgress;
@@ -113,7 +130,7 @@ namespace Essentials.Commands
             if (VoteStatus == Status.voteInProgress)
                 VoteStatus = Status.voteCancel;
             else
-                Context.Respond("A vote is not in progress");
+                Context.Respond("Нет активного голосования");
         }
 
         [Command("vote list", "Lists all possible vote commands")]
@@ -122,7 +139,7 @@ namespace Essentials.Commands
         {
             StringBuilder sb = new StringBuilder();
             var voteCommands = new List<AutoCommand>(EssentialsPlugin.Instance.Config.AutoCommands.Where(x=>x.CommandTrigger == Trigger.Vote));
-            if (Context.Player == null)sb.AppendLine($"Found {voteCommands.Count}");
+            if (Context.Player == null)sb.AppendLine($"Найдено: {voteCommands.Count}");
             var c = 1;
             foreach (var command in voteCommands)
             {
@@ -136,26 +153,33 @@ namespace Essentials.Commands
                 Context.Respond(sb.ToString());
                 return;
             }
-            ModCommunication.SendMessageTo(new DialogMessage("Vote Commands", $"Found {voteCommands.Count} vote commands", sb.ToString()),Context.Player.SteamUserId);
+            ModCommunication.SendMessageTo(new DialogMessage("Голосования", $"Найдено: {voteCommands.Count}", sb.ToString()),Context.Player.SteamUserId);
         }
 
-        [Command("no", "cancel your casted vote")]
+        [Command("no", "Submit a no vote")]
         [Permission(MyPromoteLevel.None)]
         public void VoteNo()
         {
             if (Context.Player == null)
                 return;
 
-            if (VoteStatus == Status.voteStandby)
+            if (VoteStatus != Status.voteInProgress)
             {
-                Context.Respond("no vote in progress");
+                Context.Respond("Нет активного голосования");
                 return;
             }
 
             var steamid = Context.Player.SteamUserId;
 
+            if (!_voteAgainst.Add(steamid))
+            {
+                Context.Respond("Ваш голос против уже учтён");
+                return;
+            }
+
             _voteReg.Remove(steamid);
-            Context.Respond("your vote has been retracted");
+            Context.Respond("Ваш голос против учтён");
+            SendToChat($"Голосование {voteInProgress}: {GetProgress()}");
         }
 
         [Command("yes", "Submit a yes vote")]
@@ -165,9 +189,9 @@ namespace Essentials.Commands
             if (Context.Player == null)
                 return;
 
-            if (VoteStatus == Status.voteStandby)
+            if (VoteStatus != Status.voteInProgress)
             {
-                Context.Respond("no vote in progress");
+                Context.Respond("Нет активного голосования");
                 return;
             }
 
@@ -178,7 +202,7 @@ namespace Essentials.Commands
                 var _voteDuration = TimeSpan.Parse(_command.Interval);
                 if (difference.TotalSeconds < _voteDuration.TotalSeconds)
                 {
-                    Context.Respond("Your vote has already been submitted.");
+                    Context.Respond("Ваш голос за уже учтён");
                     return;
                 }
 
@@ -189,7 +213,9 @@ namespace Essentials.Commands
                 _voteReg.Add(steamid, DateTime.Now);
             }
 
-            Context.Respond("Your vote has been submitted.");
+            _voteAgainst.Remove(steamid);
+            Context.Respond("Ваш голос за учтён");
+            SendToChat($"Голосование {voteInProgress}: {GetProgress()}");
         }
 
         //debug
@@ -199,19 +225,20 @@ namespace Essentials.Commands
         {
             var sb = new StringBuilder();
             sb.AppendLine();
-            sb.AppendLine($"Current Vote Status: {VoteStatus.ToString()}");
-            sb.AppendLine($"Current Vote Name: {voteInProgress}");
-            sb.AppendLine($"Current vote count: {_voteReg.Count}");
+            sb.AppendLine($"Текущий статус: {VoteStatus.ToString()}");
+            sb.AppendLine($"Текущее голосование: {voteInProgress}");
+            sb.AppendLine($"Голосов за: {_voteReg.Count}");
+            sb.AppendLine($"Голосов против: {_voteAgainst.Count}");
             sb.AppendLine();
-            sb.AppendLine("Last vote info");
+            sb.AppendLine("Последнее голосование");
             if (lastVoteName != null)
-                sb.AppendLine($"Last vote: {lastVoteName}");
-            sb.AppendLine($"Last Vote Result: {voteResult.ToString()}");
-            sb.AppendLine($"Last vote percent: {voteResultPercentage}");
+                sb.AppendLine($"Название: {lastVoteName}");
+            sb.AppendLine($"Результат: {voteResult.ToString()}");
+            sb.AppendLine($"Процент: {voteResultPercentage}");
             if (Context.Player == null)
                 Context.Respond(sb.ToString());
             else if (Context?.Player?.SteamUserId > 0)
-                ModCommunication.SendMessageTo(new DialogMessage("List of Online Players", null, sb.ToString()),
+                ModCommunication.SendMessageTo(new DialogMessage("Отладка голосования", null, sb.ToString()),
                     Context.Player.SteamUserId);
         }
 
@@ -222,24 +249,25 @@ namespace Essentials.Commands
         {
             if (VoteStatus == Status.voteInProgress) VoteCancel();
             _voteReg.Clear();
+            _voteAgainst.Clear();
             _voteCooldown.Clear();
             lastVoteName = null;
             voteResult = Status.voteStandby;
             voteResultPercentage = 0;
-            Context.Respond("Vote reset successful");
-            Log.Info($"Voting module reset by {Context.Player.DisplayName}");
+            Context.Respond("Данные голосования сброшены");
+            Log.Info($"Voting module reset by {Context.Player?.DisplayName ?? "console"}");
         }
 
 
         //vote countdown
         private IEnumerable VoteCountdown(TimeSpan time)
         {
-            for (var i = time.TotalSeconds; i >= 0; i--)
+            //whole seconds, the last step has to reach 0 for the vote to end
+            for (var i = Math.Ceiling(time.TotalSeconds); i >= 0; i--)
             {
-                if (VoteStatus != Status.voteInProgress || _voteReg.Count < 1)
+                if (VoteStatus != Status.voteInProgress || _voteReg.Count + _voteAgainst.Count < 1 || Utilities.GetOnlinePlayerCount() < 1)
                 {
-                    Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
-                        .SendMessageAsSelf($"Vote for {voteInProgress} cancelled");
+                    SendToChat($"Голосование {voteInProgress} отменено");
                     voteResult = Status.voteCancel;
                     VoteEnd();
                     yield break;
@@ -247,32 +275,31 @@ namespace Essentials.Commands
 
                 if (i >= 60 && i % 60 == 0)
                 {
-                    Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
-                        .SendMessageAsSelf($"Voting for {voteInProgress} ends in {i / 60} minute{Pluralize(i / 60)}.");
+                    SendToChat($"Голосование {voteInProgress} завершится через {i / 60} мин.: {GetProgress()}");
                     yield return null;
                 }
 
                 else if (i > 0)
                 {
                     if (i < 11)
-                        Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
-                            .SendMessageAsSelf($"Voting for {voteInProgress} ends in {i} second{Pluralize(i)}.");
+                        SendToChat($"Голосование {voteInProgress} завершится через {i} сек.");
                     yield return null;
                 }
                 else
                 {
-                    double vr = (double)_voteReg.Count / Utilities.GetOnlinePlayerCount();
-                    if (vr >= _command.TriggerRatio)
+                    var votes = _voteReg.Count;
+                    var online = Utilities.GetOnlinePlayerCount();
+                    var summary = $"за {votes}, против {_voteAgainst.Count}, онлайн {online}, нужно {GetRequiredVotes(online)}";
+                    double vr = (double)votes / online;
+                    if (vr >= _command.TriggerRatio && votes > _voteAgainst.Count)
                     {
-                        Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
-                            .SendMessageAsSelf($"Vote for {voteInProgress} is successful");
+                        SendToChat($"Голосование {voteInProgress} прошло: {summary}");
                         voteResult = Status.voteSuccess;
                         _command.RunNow();
                     }
-                    else if (vr < _command.TriggerRatio)
+                    else
                     {
-                        Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>()
-                            .SendMessageAsSelf($"Vote for {voteInProgress} failed");
+                        SendToChat($"Голосование {voteInProgress} не прошло: {summary}");
                         voteResult = Status.voteFail;
                     }
 
@@ -288,14 +315,51 @@ namespace Essentials.Commands
         {
             //Make sure it's all good for next round
             _command = null;
-            VoteStatus = Status.voteStandby;
             voteInProgress = null;
             _voteReg.Clear();
+            _voteAgainst.Clear();
+            //last: from here on a new vote can start
+            VoteStatus = Status.voteStandby;
         }
 
-        private string Pluralize(double num)
+        private void SendToChat(string message)
         {
-            return num == 1 ? "" : "s";
+            Context.Torch.CurrentSession.Managers.GetManager<IChatManagerClient>().SendMessageAsSelf(message);
+        }
+
+        private static string GetProgress()
+        {
+            var online = Utilities.GetOnlinePlayerCount();
+            var required = GetRequiredVotes(online);
+            return $"{_voteReg.Count} из {required} {Plural(required, "нужного голоса", "нужных голосов", "нужных голосов")}, против {_voteAgainst.Count} (онлайн {online})";
+        }
+
+        //the same comparison as the result of the vote, so the number shown is the one that really passes it
+        private static int GetRequiredVotes(int online)
+        {
+            var votes = _voteAgainst.Count + 1;
+            while ((double)votes / online < _command.TriggerRatio)
+                votes++;
+            return votes;
+        }
+
+        private static string Plural(int num, string one, string few, string many)
+        {
+            var lastTwo = num % 100;
+            if (lastTwo >= 11 && lastTwo <= 14)
+                return many;
+
+            switch (num % 10)
+            {
+                case 1:
+                    return one;
+                case 2:
+                case 3:
+                case 4:
+                    return few;
+                default:
+                    return many;
+            }
         }
     }
 }
