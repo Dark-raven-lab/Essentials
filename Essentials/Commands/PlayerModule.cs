@@ -51,14 +51,15 @@ namespace Essentials
                 return;
             }
 
-            if (grid != null && !grid.CanBeTeleported(null, out _))
+            //the game moves a grid together with everything physically connected to it
+            var moved = grid != null ? Utilities.GetConnectedGrids(grid, GridLinkTypeEnum.Physical).Cast<IMyEntity>().ToList() : new List<IMyEntity> { targetEntity };
+
+            //the game's check skips grids without physics
+            if (grid != null && (!grid.CanBeTeleported(null, out _) || moved.OfType<MyCubeGrid>().Any(g => g.IsStatic)))
             {
                 Context.Respond("Нельзя переместить: грид или связанная с ним конструкция статична или закреплена.");
                 return;
             }
-
-            //the game moves a grid together with everything physically connected to it
-            var moved = grid != null ? MyCubeGridGroups.Static.Physical.GetGroup(grid).Nodes.Select(n => (IMyEntity)n.NodeData).ToList() : new List<IMyEntity> { targetEntity };
 
             if (moved.Contains(destEntity))
             {
@@ -94,7 +95,7 @@ namespace Essentials
             foreach (var entity in moved)
                 entity.Physics?.ClearSpeed();
 
-            var destName = destEntity.DisplayName ?? destEntity.EntityId.ToString();
+            var destName = Utilities.GetName(destEntity) ?? destEntity.EntityId.ToString();
             Context.Respond($"Сущность '{targetEntity.DisplayName}' перемещена к '{destName}'.");
             Log.Info($"{Context.Player?.DisplayName ?? "console"} teleported {targetEntity.DisplayName} ({targetEntity.EntityId}) to {destName} ({destEntity.EntityId}) at {targetPos}");
         }
@@ -125,7 +126,7 @@ namespace Essentials
         /// <param name="entity">What can really be moved: for a seated player or a block it's the grid.</param>
         private bool TryFindEntityOrOwn(string nameOrId, string notFoundMessage, out IMyEntity entity)
         {
-            entity = FindEntityOrOwn(nameOrId);
+            entity = string.IsNullOrEmpty(nameOrId) ? Context.Player?.Controller?.ControlledEntity?.Entity : Utilities.FindEntities(nameOrId).FirstOrDefault();
 
             if (entity is MyCharacter character && character.IsDead)
             {
@@ -134,33 +135,13 @@ namespace Essentials
             }
 
             entity = entity?.GetTopMostParent();
-            if (entity == null || IsProjection(entity))
+            if (entity == null || Utilities.IsProjection(entity))
             {
                 Context.Respond(notFoundMessage);
                 return false;
             }
 
             return true;
-        }
-
-        private IMyEntity FindEntityOrOwn(string nameOrId)
-        {
-            if (string.IsNullOrEmpty(nameOrId))
-                return Context.Player?.Controller?.ControlledEntity?.Entity;
-
-            //the character of a seated player is not in the list of entities that is searched by name
-            var player = Utilities.GetOnlinePlayers().FirstOrDefault(p => p.DisplayName == nameOrId);
-            if (player?.Character != null)
-                return player.Character;
-
-            //a projection can have the same name as the real grid
-            Utilities.TryGetEntityByNameOrId(nameOrId, e => !IsProjection(e), out var entity);
-            return entity;
-        }
-
-        private static bool IsProjection(IMyEntity entity)
-        {
-            return entity is MyCubeGrid grid && (grid.IsPreview || grid.Physics == null);
         }
 
         [Command("tpto", "Перемещает вас или указанный грид либо персонажа к другой сущности.", "Перемещает вас к указанной сущности. Если вы сидите в кокпите, перемещается весь корабль. Вторым аргументом можно указать, кого переместить вместо вас." + TeleportHelp + "\nПримеры: !tpto Иван или !tpto \"Моя база\" Пётр")]

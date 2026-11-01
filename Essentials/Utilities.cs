@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Sandbox.Game.Entities;
+using Sandbox.Game.Entities.Character;
 using Sandbox.Game.World;
 using Sandbox.ModAPI;
+using VRage.Game.Entity;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
 using VRage.Utils;
@@ -90,18 +92,12 @@ namespace Essentials
 
         public static bool TryGetEntityByNameOrId(string nameOrId, out IMyEntity entity)
         {
-            return TryGetEntityByNameOrId(nameOrId, null, out entity);
-        }
-
-        /// <param name="nameFilter">Skips entities in the search by name, an ID finds what it finds.</param>
-        public static bool TryGetEntityByNameOrId(string nameOrId, Func<IMyEntity, bool> nameFilter, out IMyEntity entity)
-        {
             if (long.TryParse(nameOrId, out long id))
                 return MyAPIGateway.Entities.TryGetEntityById(id, out entity);
 
             foreach (var ent in MyEntities.GetEntities())
             {
-                if (ent.DisplayName == nameOrId && (nameFilter == null || nameFilter(ent)))
+                if (ent.DisplayName == nameOrId)
                 {
                     entity = ent;
                     return true;
@@ -110,6 +106,70 @@ namespace Essentials
 
             entity = null;
             return false;
+        }
+
+        /// <summary>
+        /// Everything a command can find: first the characters of players online, then grids and other entities, then all other characters.
+        /// MyEntities doesn't list seated characters, and a projection can have the same name as the real grid.
+        /// The current character of a player is listed even if dead so a command can tell that, other dead bodies are not.
+        /// </summary>
+        public static IEnumerable<MyEntity> GetSearchableEntities()
+        {
+            var players = MySession.Static.Players.GetAllIdentities()
+                .Where(x => x.Character != null && !x.Character.MarkedForClose)
+                .ToLookup(x => MySession.Static.Players.IsPlayerOnline(x.IdentityId), x => (MyEntity)x.Character);
+            var entities = MyEntities.GetEntities();
+
+            return players[true]
+                .Concat(entities.Where(x => !(x is MyCharacter) && !IsProjection(x)))
+                .Concat(players[false])
+                .Concat(entities.Where(x => x is MyCharacter character && !character.IsDead))
+                .Distinct();
+        }
+
+        /// <summary>
+        /// Finds entities by entity ID or exact name. The character of a player is also found by identity ID or Steam ID.
+        /// An ID gives one entity, a name can give several, in the order of <see cref="GetSearchableEntities"/>.
+        /// </summary>
+        public static List<MyEntity> FindEntities(string nameOrId)
+        {
+            long.TryParse(nameOrId, out var id);
+            if (id != 0 && MyEntities.TryGetEntityById(id, out MyEntity byId))
+                return IsProjection(byId) ? new List<MyEntity>() : new List<MyEntity> { byId };
+
+            ulong.TryParse(nameOrId, out var steamId);
+            return GetSearchableEntities().Where(entity => GetName(entity) == nameOrId || entity.DisplayName == nameOrId
+                || (entity is MyCharacter character && IsCharacterOf(character, nameOrId, id, steamId))).ToList();
+        }
+
+        private static bool IsCharacterOf(MyCharacter character, string name, long identityId, ulong steamId)
+        {
+            var characterIdentityId = character.GetPlayerIdentityId();
+            return (identityId != 0 && characterIdentityId == identityId)
+                || (steamId != 0 && GetSteamId(characterIdentityId) == steamId)
+                || character.GetIdentity()?.DisplayName == name;
+        }
+
+        /// <summary>
+        /// The name to show for an entity: planets and asteroids are known by the name of their storage.
+        /// </summary>
+        public static string GetName(IMyEntity entity)
+        {
+            return (entity as IMyVoxelBase)?.StorageName ?? entity.DisplayName;
+        }
+
+        //also true for a block of a projection. A grid can have no physics for other reasons, for example optimizations
+        public static bool IsProjection(IMyEntity entity)
+        {
+            return entity.GetTopMostParent() is MyCubeGrid grid && (grid.IsPreview || grid.Projector != null);
+        }
+
+        /// <summary>
+        /// A connector gives a physical link, so a docked ship and its base are one physical group. Rotors, pistons and hinges give a mechanical one.
+        /// </summary>
+        public static List<MyCubeGrid> GetConnectedGrids(MyCubeGrid grid, GridLinkTypeEnum link)
+        {
+            return MyCubeGridGroups.Static.GetGroups(link).GetGroupNodes(grid);
         }
 
         public static IMyIdentity GetIdentityByNameOrIds(string playerNameOrIds) 
