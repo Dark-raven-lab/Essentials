@@ -100,7 +100,7 @@ namespace Essentials.Commands
                 }
                 if (!found)
                 {
-                    context.Respond($"Unknown argument '{arg}'");
+                    context.Respond($"Неизвестный аргумент '{arg}'");
                     return new List<MyCubeGrid>();
                 }
             }

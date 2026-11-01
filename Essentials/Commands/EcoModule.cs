@@ -14,12 +14,12 @@ namespace Essentials.Commands
     [Category("econ")]
     public class EcoModule : CommandModule {
 
-        [Command("give", "Add a specified anount of credits into a users account. Use '*' to affect all players")]
+        [Command("give", "Добавляет кредиты на счёт игрока. Укажите '*', чтобы применить ко всем игрокам")]
         [Permission(MyPromoteLevel.Admin)]
         public void EcoGive(string player, long amount, bool onlyOnline = false, bool excludeNpcs = true) {
 
             if(!TryFindPlayerIdentities(player, onlyOnline, excludeNpcs, out List<long> foundIdentities)) {
-                Context.Respond("Player cannot be found!");
+                Context.Respond("Игрок не найден!");
                 return;
             }
 
@@ -31,20 +31,20 @@ namespace Essentials.Commands
 
                 ulong steamId = Utilities.GetSteamId(identityId);
 
-                ModCommunication.SendMessageTo(new NotificationMessage($"{amount:#,##0} credits have been added to your virtual account", 10000, "Blue"), steamId);
+                ModCommunication.SendMessageTo(new NotificationMessage($"На ваш счёт зачислено кредитов: {amount:#,##0}", 10000, "Blue"), steamId);
 
                 changedIdentities++;
             }
 
-            Context.Respond($"{amount:#,##0} credits given to {changedIdentities:#,##0} account(s)");
+            Context.Respond($"Кредитов выдано: {amount:#,##0}, счетов: {changedIdentities:#,##0}");
         }
 
-        [Command("take", "Take a specified anount of credits from a users account. Use '*' to affect all players")]
+        [Command("take", "Снимает кредиты со счёта игрока. Укажите '*', чтобы применить ко всем игрокам")]
         [Permission(MyPromoteLevel.Admin)]
         public void EcoTake(string player, long amount, bool onlyOnline = false, bool excludeNpcs = true) {
 
             if (!TryFindPlayerIdentities(player, onlyOnline, excludeNpcs, out List<long> foundIdentities)) {
-                Context.Respond("Player cannot be found!");
+                Context.Respond("Игрок не найден!");
                 return;
             }
 
@@ -56,20 +56,20 @@ namespace Essentials.Commands
 
                 ulong steamId = Utilities.GetSteamId(identityId);
 
-                ModCommunication.SendMessageTo(new NotificationMessage($"{amount:#,##0} credits have been taken from your virtual account", 10000, "Blue"), steamId);
+                ModCommunication.SendMessageTo(new NotificationMessage($"С вашего счёта списано кредитов: {amount:#,##0}", 10000, "Blue"), steamId);
 
                 changedIdentities++;
             }
 
-            Context.Respond($"{amount:#,##0} credits taken from {changedIdentities:#,##0} account(s)");
+            Context.Respond($"Кредитов списано: {amount:#,##0}, счетов: {changedIdentities:#,##0}");
         }
 
-        [Command("set", "Set a users account to a specifed balance. Use '*' to affect all players")]
+        [Command("set", "Задаёт баланс счёта игрока. Укажите '*', чтобы применить ко всем игрокам")]
         [Permission(MyPromoteLevel.Admin)]
         public void EcoSet(string player, long amount, bool onlyOnline = false, bool excludeNpcs = true) {
 
             if (!TryFindPlayerIdentities(player, onlyOnline, excludeNpcs, out List<long> foundIdentities)) {
-                Context.Respond("Player cannot be found!");
+                Context.Respond("Игрок не найден!");
                 return;
             }
 
@@ -83,21 +83,21 @@ namespace Essentials.Commands
 
                 ulong steamId = Utilities.GetSteamId(identityId);
 
-                ModCommunication.SendMessageTo(new NotificationMessage($"Your balance has been set to {amount:#,##0} credits!", 10000, "Blue"), steamId);
+                ModCommunication.SendMessageTo(new NotificationMessage($"Ваш баланс установлен, кредитов: {amount:#,##0}!", 10000, "Blue"), steamId);
 
                 changedIdentities++;
             }
 
-            Context.Respond($"Balance(s) set to {amount:#,##0} on {changedIdentities:#,##0} accounts");
+            Context.Respond($"Установлен баланс {amount:#,##0}, счетов: {changedIdentities:#,##0}");
         }
 
-        [Command("reset", "Reset the credits in a users account to 10,000. Use '*' to affect all players")]
+        [Command("reset", "Сбрасывает счёт игрока до 10 000 кредитов. Укажите '*', чтобы применить ко всем игрокам")]
         [Permission(MyPromoteLevel.Admin)]
         public void EcoReset(string player, bool onlyOnline = false, bool excludeNpcs = true) {
             EcoSet(player, 10_000, onlyOnline, excludeNpcs);
         }
 
-        [Command("top", "Return a list of each players balance on the server sorted from highest to lowest")]
+        [Command("top", "Показывает балансы игроков сервера по убыванию")]
         [Permission(MyPromoteLevel.None)]
         public void EcoTop(bool onlyOnline = false, bool excludeNpcs = true) {
 
@@ -115,14 +115,14 @@ namespace Essentials.Commands
             }
 
             StringBuilder ecodata = new StringBuilder();
-            ecodata.AppendLine("Summary of balanaces accross the server");
+            ecodata.AppendLine("Сводка балансов на сервере");
 
             var sorted = balances.OrderByDescending(x => x.Value).ThenBy(x => x.Key.DisplayName);
             foreach (var value in sorted) {
 
                 var identity = value.Key;
 
-                ecodata.AppendLine($"Player: {identity.DisplayName} - Balance: {value.Value:#,##0}");
+                ecodata.AppendLine($"Игрок: {identity.DisplayName} - Баланс: {value.Value:#,##0}");
             }
 
             if (Context.Player == null) {
@@ -130,40 +130,40 @@ namespace Essentials.Commands
                 return;
             }
 
-            ModCommunication.SendMessageTo(new DialogMessage("Public balance list", "List of players and their credit balances", ecodata.ToString()), Context.Player.SteamUserId);
+            ModCommunication.SendMessageTo(new DialogMessage("Общий список балансов", "Игроки и их балансы в кредитах", ecodata.ToString()), Context.Player.SteamUserId);
         }
 
-        [Command("check", "Check the balance of a specific player")]
+        [Command("check", "Показывает баланс указанного игрока")]
         [Permission(MyPromoteLevel.None)]
         public void EcoCheck(string Player) {
 
             var p = Utilities.GetIdentityByNameOrIds(Player);
             if (p == null) {
-                Context.Respond("Player cannot be found!");
+                Context.Respond("Игрок не найден!");
                 return;
             }
 
             long balance = MyBankingSystem.GetBalance(p.IdentityId);
 
-            Context.Respond($"{p.DisplayName}'s balance is {balance:#,##0} credits");
+            Context.Respond($"Баланс игрока {p.DisplayName}, кредитов: {balance:#,##0}");
         }
 
         [Command("pay")]
         [Permission(MyPromoteLevel.None)]
         public void EcoPay(string Player, long amount) {
             if (amount <= 0) {
-                Context.Respond("Amount cannot be negative");
+                Context.Respond("Сумма не может быть отрицательной");
                 return;
             }
             if (Context.Player == null) {
-                Context.Respond("Console cannot execute this command");
+                Context.Respond("Команда недоступна из консоли");
                 return;
             }
             
             /* We are purposely keeping the online check in this method. Otherwise it could cause confusion with players. */
             var p = Utilities.GetPlayerByNameOrId(Player);
             if (p == null) {
-                Context.Respond("Player is not online or cannot be found!");
+                Context.Respond("Игрок не в сети или не найден!");
                 return;
             }
 
@@ -171,7 +171,7 @@ namespace Essentials.Commands
             var toIdentitiyId = p.Identity.IdentityId;
 
             if (fromIdentitiyId == toIdentitiyId) {
-                Context.Respond("You cannot pay yourself!");
+                Context.Respond("Нельзя перевести кредиты самому себе!");
                 return;
             }
 
@@ -179,13 +179,13 @@ namespace Essentials.Commands
             var finalToBalance = MyBankingSystem.GetBalance(toIdentitiyId) + amount;
 
             if(finalFromBalance < 0) {
-                Context.Respond($"Sorry, but you are short {-finalFromBalance:#,##0} credits!");
+                Context.Respond($"Не хватает кредитов: {-finalFromBalance:#,##0}!");
                 return;
             }
 
             MyBankingSystem.RequestTransfer_BroadcastToClients(Context.Player.Identity.IdentityId, p.Identity.IdentityId, amount, finalFromBalance, finalToBalance);
-            ModCommunication.SendMessageTo(new NotificationMessage($"Your have recieved {amount:#,##0} credits from {Context.Player.DisplayName}!", 10000, "Blue"), p.SteamUserId);
-            ModCommunication.SendMessageTo(new NotificationMessage($"Your have sent {amount:#,##0} credits to {p.DisplayName}!", 10000, "Blue"), Context.Player.SteamUserId);
+            ModCommunication.SendMessageTo(new NotificationMessage($"Вы получили кредиты от {Context.Player.DisplayName}: {amount:#,##0}!", 10000, "Blue"), p.SteamUserId);
+            ModCommunication.SendMessageTo(new NotificationMessage($"Вы отправили кредиты игроку {p.DisplayName}: {amount:#,##0}!", 10000, "Blue"), Context.Player.SteamUserId);
         }
 
         /// <summary>

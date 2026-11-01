@@ -43,7 +43,7 @@ namespace Essentials
 
         private static Dictionary<ulong, DateTime> _commandtimeout = new Dictionary<ulong, DateTime>();
 
-        [Command("refresh", "Resyncs all entities for the player running the command.")]
+        [Command("refresh", "Заново синхронизирует все сущности для игрока, вызвавшего команду.")]
         [Permission(MyPromoteLevel.None)]
         public void Refresh()
         {
@@ -56,7 +56,7 @@ namespace Essentials
                 TimeSpan difference = DateTime.Now - lastcommand;
                 if (difference.TotalMinutes < 1)
                 {
-                    Context.Respond($"Cooldown active. You can use this command again in {difference.TotalSeconds:N0} seconds");
+                    Context.Respond($"Перезарядка: команду можно использовать снова через {difference.TotalSeconds:N0} сек.");
                     return;
                 }
                 else
@@ -94,24 +94,24 @@ namespace Essentials
                 _forceReplicable.Invoke(replicationServer, replicable, playerEndpoint);
             }
 
-            Context.Respond($"Forced replication of {replicableList.Count} entities.");
+            Context.Respond($"Принудительно синхронизировано сущностей: {replicableList.Count}.");
         }
 
-        [Command("stop", "Stops an entity from moving")]
+        [Command("stop", "Останавливает сущность")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void Stop(string entityName)
         {
             if (!Utilities.TryGetEntityByNameOrId(entityName, out IMyEntity entity))
             {
-                Context.Respond($"Entity '{entityName}' not found.");
+                Context.Respond($"Сущность '{entityName}' не найдена.");
                 return;
             }
 
             entity.Physics?.ClearSpeed();
-            Context.Respond($"Entity '{entity.DisplayName}' stopped");
+            Context.Respond($"Сущность '{entity.DisplayName}' остановлена");
         }
 
-        [Command("delete", "Delete an entity.")]
+        [Command("delete", "Удаляет сущность.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void Delete(string entityName)
         {
@@ -121,21 +121,21 @@ namespace Essentials
 
             if (!Utilities.TryGetEntityByNameOrId(name, out IMyEntity entity))
             {
-                Context.Respond($"Entity '{name}' not found.");
+                Context.Respond($"Сущность '{name}' не найдена.");
                 return;
             }
 
             if (entity is IMyCharacter)
             {
-                Context.Respond("You cannot delete characters.");
+                Context.Respond("Нельзя удалять персонажей.");
                 return;
             }
 
             entity.Close();
-            Context.Respond($"Entity '{entity.DisplayName}' deleted");
+            Context.Respond($"Сущность '{entity.DisplayName}' удалена");
         }
 
-        [Command("kill", "kill a player.")]
+        [Command("kill", "Убивает игрока.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void Kill(string playerName)
         {
@@ -149,7 +149,7 @@ namespace Essentials
                 MyVisualScriptLogicProvider.SetPlayersHealth(player.IdentityId, 0);
 
                 Context.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsSelf
-                    ($"{player.DisplayName} was killed by an admin");
+                    ($"{player.DisplayName} убит администратором");
 
                 return;
             }
@@ -159,7 +159,7 @@ namespace Essentials
              * damage to the character as the VST will not help us with offline characters. 
              */
             if (!Utilities.TryGetEntityByNameOrId(playerName, out IMyEntity entity)) {
-                Context.Respond($"Entity '{playerName}' not found.");
+                Context.Respond($"Сущность '{playerName}' не найдена.");
                 return;
             }
 
@@ -170,18 +170,18 @@ namespace Essentials
                 destroyable.DoDamage(1000f, MyDamageType.Radioactivity, true);
 
                 Context.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsSelf
-                    ($"{entity.DisplayName} was killed by an admin");
+                    ($"{entity.DisplayName} убит администратором");
             }
         }
 
-        [Command("find", "Find entities with the given text in their name.")]
+        [Command("find", "Ищет сущности с указанным текстом в названии.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void Find(string name)
         {
             if (string.IsNullOrEmpty(name))
                 return;
 
-            var sb = new StringBuilder("Found entities:\n");
+            var sb = new StringBuilder("Найденные сущности:\n");
             foreach (var entity in MyEntities.GetEntities())
             {
                 if (entity is IMyVoxelBase voxel && (voxel.StorageName?.Contains(name, StringComparison.CurrentCultureIgnoreCase) ?? false))
@@ -194,7 +194,7 @@ namespace Essentials
             Context.Respond(sb.ToString());
         }
 
-        [Command("poweroff", "Power off entities with the given text in their name.")]
+        [Command("poweroff", "Выключает питание сущностей с указанным текстом в названии.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void PowerOff(string name)
         {
@@ -204,13 +204,13 @@ namespace Essentials
 
             if (!Utilities.TryGetEntityByNameOrId(name, out IMyEntity entity))
             {
-                Context.Respond($"Entity '{name}' not found.");
+                Context.Respond($"Сущность '{name}' не найдена.");
                 return;
             }
 
             if (entity is IMyCharacter)
             {
-                Context.Respond("Command do not work on characters.");
+                Context.Respond("Команда не работает на персонажах.");
                 return;
             }
             IMyCubeGrid grid = entity as MyCubeGrid;
@@ -224,11 +224,11 @@ namespace Essentials
             {
                 item.Enabled = false;
             }
-            Context.Respond($"Entity '{entity.DisplayName}' powered off");
+            Context.Respond($"Питание сущности '{entity.DisplayName}' выключено");
 
         }
 
-        [Command("poweron", "Power on entities with the given text in their name.")]
+        [Command("poweron", "Включает питание сущностей с указанным текстом в названии.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void PowerOn(string name)
         {
@@ -238,13 +238,13 @@ namespace Essentials
 
             if (!Utilities.TryGetEntityByNameOrId(name, out IMyEntity entity))
             {
-                Context.Respond($"Entity '{name}' not found.");
+                Context.Respond($"Сущность '{name}' не найдена.");
                 return;
             }
 
             if (entity is IMyCharacter)
             {
-                Context.Respond("Command do not work on characters.");
+                Context.Respond("Команда не работает на персонажах.");
                 return;
             }
             IMyCubeGrid grid = entity as MyCubeGrid;
@@ -258,11 +258,11 @@ namespace Essentials
             {
                 item.Enabled = true;
             }
-            Context.Respond($"Entity '{entity.DisplayName}' powered on");
+            Context.Respond($"Питание сущности '{entity.DisplayName}' включено");
 
         }
 
-        [Command("eject", "Ejects a specific player from any block they are seated in, or all players in the server if run with 'all'")]
+        [Command("eject", "Высаживает игрока из блока, в котором он сидит, или всех игроков сервера, если указать 'all'")]
         public void Eject(string playerName) {
 
             if (playerName.ToLower() == "all") 
@@ -291,7 +291,7 @@ namespace Essentials
                 }
             }
 
-            Context.Respond($"Ejected '{ejectedPlayersCount}' players from their seats.");
+            Context.Respond($"Высажено игроков: {ejectedPlayersCount}.");
         }
 
         private void EjectSinglePlayer(string playerName) {
@@ -304,11 +304,11 @@ namespace Essentials
                 if (player?.Controller.ControlledEntity is MyCockpit controller) 
                 {
                     controller.Use();
-                    Context.Respond($"Player '{playerName}' ejected.");
+                    Context.Respond($"Игрок '{playerName}' высажен.");
                 } 
                 else 
                 {
-                    Context.Respond("Player not seated.");
+                    Context.Respond("Игрок никуда не сел.");
                 }
 
                 return;
@@ -324,7 +324,7 @@ namespace Essentials
                     {
                         controller.Use();
 
-                        Context.Respond($"Player '{playerName}' ejected.");
+                        Context.Respond($"Игрок '{playerName}' высажен.");
 
                         /* We found our player. so no need to continue looking */
                         return;
@@ -332,7 +332,7 @@ namespace Essentials
                 }
             }
 
-            Context.Respond("Offline player not found or seated.");
+            Context.Respond("Офлайн-игрок не найден или никуда не сел.");
         }
     }
 }

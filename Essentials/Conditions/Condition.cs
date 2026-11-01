@@ -37,19 +37,19 @@ namespace Essentials.Conditions
             bool result;
             if (!string.IsNullOrEmpty(arg) && Parameter == null)
             {
-                context.Respond($"Condition does not accept an argument. Cannot continue!");
+                context.Respond($"Условие не принимает аргумент. Продолжить нельзя!");
                 return null;
             }
             if (string.IsNullOrEmpty(arg) && Parameter != null && !Parameter.HasDefaultValue)
             {
-                context.Respond($"Condition requires an argument! {Parameter.ParameterType.Name}: {Parameter.Name} Not supplied, cannot continue!");
+                context.Respond($"Условию нужен аргумент {Parameter.ParameterType.Name}: {Parameter.Name}. Он не указан, продолжить нельзя!");
                 return null;
             }
             if (Parameter != null && !string.IsNullOrEmpty(arg))
             {
                 if (!arg.TryConvert(Parameter.ParameterType, out object val))
                 {
-                    context.Respond($"Could not parse argument!");
+                    context.Respond($"Не удалось разобрать аргумент!");
                     return null;
                 }
 

@@ -42,7 +42,7 @@ namespace Essentials.Commands
         private static Status voteResult;
         private static double voteResultPercentage;
 
-        [Command("vote", "starts a vote for a command")]
+        [Command("vote", "Начинает голосование за команду")]
         [Permission(MyPromoteLevel.None)]
         public void Vote(string name)
         {
@@ -123,7 +123,7 @@ namespace Essentials.Commands
             lastVoteName = voteInProgress;
         }
 
-        [Command("vote cancel", "Cancels current vote in progress")]
+        [Command("vote cancel", "Отменяет текущее голосование")]
         [Permission(MyPromoteLevel.Admin)]
         public void VoteCancel()
         {
@@ -133,7 +133,7 @@ namespace Essentials.Commands
                 Context.Respond("Нет активного голосования");
         }
 
-        [Command("vote list", "Lists all possible vote commands")]
+        [Command("vote list", "Показывает все доступные голосования")]
         [Permission(MyPromoteLevel.None)]
         public void VoteList()
         {
@@ -156,7 +156,7 @@ namespace Essentials.Commands
             ModCommunication.SendMessageTo(new DialogMessage("Голосования", $"Найдено: {voteCommands.Count}", sb.ToString()),Context.Player.SteamUserId);
         }
 
-        [Command("no", "Submit a no vote")]
+        [Command("no", "Голос против")]
         [Permission(MyPromoteLevel.None)]
         public void VoteNo()
         {
@@ -182,7 +182,7 @@ namespace Essentials.Commands
             SendToChat($"Голосование {voteInProgress}: {GetProgress()}");
         }
 
-        [Command("yes", "Submit a yes vote")]
+        [Command("yes", "Голос за")]
         [Permission(MyPromoteLevel.None)]
         public void VoteYes()
         {
@@ -208,7 +208,7 @@ namespace Essentials.Commands
         }
 
         //debug
-        [Command("vote debug", "prints out info from the voting module")]
+        [Command("vote debug", "Показывает отладочные данные голосования")]
         [Permission(MyPromoteLevel.Admin)]
         public void VoteDebgug()
         {
@@ -232,7 +232,7 @@ namespace Essentials.Commands
         }
 
         //vote reset
-        [Command("vote reset", "Resets the voting module data including cooldowns")]
+        [Command("vote reset", "Сбрасывает данные голосования, включая перезарядку")]
         [Permission(MyPromoteLevel.Admin)]
         public void VoteReset()
         {

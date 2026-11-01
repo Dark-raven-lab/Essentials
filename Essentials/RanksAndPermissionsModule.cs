@@ -206,7 +206,7 @@ namespace Essentials {
             if (hasPermission && !hasPerm) {
                 hasPermissionOverride = hasPerm;
                 Log.Info($"{player.DisplayName} tried to use the blocked command '{cmd}'");
-                ModCommunication.SendMessageTo(new NotificationMessage($"You do not have permission to use that command!", 10000, "Red"), player.SteamUserId);
+                ModCommunication.SendMessageTo(new NotificationMessage($"У вас нет прав на эту команду!", 10000, "Red"), player.SteamUserId);
             }
         }
 

@@ -35,7 +35,7 @@ namespace Essentials.Commands
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
-        [Command("identity clean", "Remove identities that have not logged on in X days.")]
+        [Command("identity clean", "Удаляет личности, не заходившие X дней.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void CleanIdentities(int days)
         {
@@ -51,10 +51,10 @@ namespace Essentials.Commands
             
             FixGridOwnership(new List<long>(removeIds.Select(x => x.IdentityId)), false);
             RemoveEmptyFactions();
-            Context.Respond($"Removed {count} old identities");
+            Context.Respond($"Удалено старых личностей: {count}");
         }
 
-        [Command("identity purge", "Remove identities AND the grids they own if they have not logged on in X days.")]
+        [Command("identity purge", "Удаляет личности и их гриды, если игрок не заходил X дней.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void PurgeIdentities(int days)
         {
@@ -71,7 +71,7 @@ namespace Essentials.Commands
 
             if (count == 0)
             {
-                Context.Respond($"No old identity found past {days}");
+                Context.Respond($"Нет личностей старше {days} дн.");
                 return;
             }
 
@@ -79,10 +79,10 @@ namespace Essentials.Commands
             RemoveFromFaction_Internal(removeIds);
 
             RemoveEmptyFactions();
-            Context.Respond($"Removed {count} old identities and {count2} grids owned by them.");
+            Context.Respond($"Удалено старых личностей: {count}, их гридов: {count2}.");
         }
 
-        [Command("identity clear", "Clear identity of specific player")]
+        [Command("identity clear", "Удаляет личность указанного игрока")]
         [Permission(MyPromoteLevel.Admin)]
         public void PurgeIdentity (string playername) {
             var count2 = 0;
@@ -91,46 +91,46 @@ namespace Essentials.Commands
 
             if (id == null)
             {
-                Context.Respond($"No Identity found for {playername}.  Try Again");
+                Context.Respond($"Личность игрока {playername} не найдена. Попробуйте снова");
                 return;
             }
 
             count2 = FixGridOwnership(new List<long> { id.IdentityId });
             RemoveEmptyFactions();
-            Context.Respond($"Removed identity and {count2} grids owned by them.");
+            Context.Respond($"Личность удалена, удалено гридов: {count2}.");
         }
 
-        [Command("rep wipe", "Resets the reputation on the server")]
+        [Command("rep wipe", "Сбрасывает репутацию на сервере")]
         public void WipeReputation(bool removePlayerToFaction = true, bool removeFactionToFaction = true)
         {
             var count = WipeRep(removePlayerToFaction, removeFactionToFaction);
-            Context.Respond($"Wiped {count} reputations");
+            Context.Respond($"Сброшено записей репутации: {count}");
         }
 
 
-        [Command("faction clean", "Removes factions with fewer than the given number of players.")]
+        [Command("faction clean", "Удаляет фракции, в которых игроков меньше указанного числа.")]
         public void CleanFactions(int memberCount = 1)
         {
             int count = CleanFaction_Internal(memberCount);
 
-            Context.Respond($"Removed {count} factions with fewer than {memberCount} members.");
+            Context.Respond($"Удалено фракций меньше чем с {memberCount} участниками: {count}.");
         }
 
 
-        [Command("faction remove", "removes faction by tag name")]
+        [Command("faction remove", "Удаляет фракцию по тегу")]
         [Permission(MyPromoteLevel.Admin)]
         public void RemoveFaction(string tag)
         {
             if (tag == null)
             {
-                Context.Respond("You need to add a faction tag to remove");
+                Context.Respond("Укажите тег удаляемой фракции");
                 return;
             }
 
             var fac = MySession.Static.Factions.TryGetFactionByTag(tag);
             if (fac == null || !MySession.Static.Factions.FactionTagExists(tag))
             {
-                Context.Respond($"{tag} is not a faction on this server");
+                Context.Respond($"На этом сервере нет фракции {tag}");
                 return;
             }
             foreach (var player in fac.Members)
@@ -140,11 +140,11 @@ namespace Essentials.Commands
             }
             RemoveFaction(fac);
             Context.Respond(MySession.Static.Factions.FactionTagExists(tag)
-                ? $"{tag} removal failed"
-                : $"{tag} removal successful");
+                ? $"Не удалось удалить {tag}"
+                : $"Фракция {tag} удалена");
         }
 
-        [Command("faction info", "lists members of given faction")]
+        [Command("faction info", "Показывает участников указанной фракции")]
         [Permission(MyPromoteLevel.Admin)]
         public void FactionInfo()
         {
@@ -159,10 +159,10 @@ namespace Essentials.Commands
                 sb.AppendLine();
                 if (faction.IsEveryoneNpc())
                 {
-                    sb.AppendLine($"{faction.Tag} - {memberCount} NPC found in this faction");
+                    sb.AppendLine($"{faction.Tag} - NPC в этой фракции: {memberCount}");
                     continue;
                 }
-                sb.AppendLine($"{faction.Tag} - {memberCount} players in this faction");
+                sb.AppendLine($"{faction.Tag} - игроков в этой фракции: {memberCount}");
                 foreach (var player in faction?.Members)
                 {
                     if (!MySession.Static.Players.HasIdentity(player.Key) && !MySession.Static.Players.IdentityIsNpc(player.Key)||
@@ -174,7 +174,7 @@ namespace Essentials.Commands
                 Context.Respond(sb.ToString());
             else if (Context?.Player?.SteamUserId > 0)
             {
-                ModCommunication.SendMessageTo(new DialogMessage("Faction Info", null, sb.ToString()), Context.Player.SteamUserId);
+                ModCommunication.SendMessageTo(new DialogMessage("Информация о фракции", null, sb.ToString()), Context.Player.SteamUserId);
             }
 
 
@@ -321,14 +321,14 @@ namespace Essentials.Commands
         private static readonly FieldInfo CamerasField = typeof(MySession).GetField("Cameras", BindingFlags.NonPublic | BindingFlags.Instance);
         private static readonly FieldInfo AllCamerasField = CamerasField.FieldType.GetField("m_entityCameraSettings", BindingFlags.NonPublic | BindingFlags.Instance);
 
-        [Command("sandbox clean", "Cleans up junk data from the sandbox file")]
+        [Command("sandbox clean", "Очищает файл мира от лишних данных")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void CleanSandbox(int keepDays = 30)
         {
             //0 or less would remove every offline player with no blocks, too many days don't fit in a DateTime
             if (keepDays < 1 || keepDays > 36500)
             {
-                Context.Respond("keepDays must be between 1 and 36500.");
+                Context.Respond("keepDays должен быть от 1 до 36500.");
                 return;
             }
 
@@ -444,7 +444,7 @@ namespace Essentials.Commands
             count += cf.Count;
             cf.Clear();
 
-            Context.Respond($"Removed {count} unnecessary elements. Players with no blocks are removed only after {keepDays} days offline.");
+            Context.Respond($"Удалено лишних элементов: {count}. Игроки без блоков удаляются только после {keepDays} дн. без входа.");
         }
 
         [ReflectedGetter(Name = "m_relationsBetweenFactions", Type = typeof(MyFactionCollection))]

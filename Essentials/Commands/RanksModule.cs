@@ -30,10 +30,10 @@ namespace Essentials.Commands {
         [Permission(MyPromoteLevel.Admin)]
         public void CreateRank(string name) {
             if (!RanksAndPermissions.GenerateRank(name)) {
-                Context.Respond("Rank already exists!");
+                Context.Respond("Такой ранг уже существует!");
                 return;
             }
-            Context.Respond("Rank Created!");
+            Context.Respond("Ранг создан!");
         }
 
         [Command("delrank")]
@@ -41,7 +41,7 @@ namespace Essentials.Commands {
         public void DeleteRank(string name) {
             RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(name);
             if (rank == null) {
-                Context.Respond($"Rank '{name}' does not exist!");
+                Context.Respond($"Ранга '{name}' не существует!");
                 return;
             }
             RanksAndPermissionsModule.Ranks.Remove(rank);
@@ -54,23 +54,23 @@ namespace Essentials.Commands {
         public void SetMaxHomes(string rankName, int value) {
             RanksAndPermissionsModule.RankData Rank = RanksAndPermissions.GetRankData(rankName);
             if (Rank == null) {
-                Context.Respond($"Rank '{rankName}' does not exist!");
+                Context.Respond($"Ранга '{rankName}' не существует!");
                 return;
             }
 
             Rank.MaxHomes = value;
-            Context.Respond($"Anyone with the rank '{Rank.RankName}' can now only set {value} homes");
+            Context.Respond($"Игроки с рангом '{Rank.RankName}' теперь могут установить домов: {value}");
         }
 
         [Command("reservedslot")]
         [Permission(MyPromoteLevel.Admin)]
         public void SetReservedSlot(string rankName, string boolVal) {
             if (boolVal != "true" || boolVal != "false") {
-                Context.Respond("Argument is not a valid bool type");
+                Context.Respond("Аргумент должен быть true или false");
             }
             RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(rankName);
             if (rank == null) {
-                Context.Respond($"Rank '{rankName}' does not exist!");
+                Context.Respond($"Ранга '{rankName}' не существует!");
                 return;
             }
             rank.ReservedSlot = bool.Parse(boolVal);
@@ -83,7 +83,7 @@ namespace Essentials.Commands {
         public void RenameRank(string oldName, string newName) {
             RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(oldName);
             if (rank == null) {
-                Context.Respond($"Rank '{oldName}' does not exist!");
+                Context.Respond($"Ранга '{oldName}' не существует!");
                 return;
             }
             rank.RankName = newName;
@@ -96,13 +96,13 @@ namespace Essentials.Commands {
         public void SetDefaultRank(string name) {
             RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(name);
             if (rank == null) {
-                Context.Respond($"Rank '{name}' does not exist!");
+                Context.Respond($"Ранга '{name}' не существует!");
                 return;
             }
             EssentialsPlugin.Instance.Config.DefaultRank = name;
             EssentialsPlugin.Instance.Save();
-            Context.Respond($"Default rank set to '{name}'!");
-            Log.Info($"Default rank set to '{name}'!");
+            Context.Respond($"Ранг по умолчанию: '{name}'!");
+            Log.Info($"Ранг по умолчанию: '{name}'!");
         }
 
         [Command("setrank")]
@@ -114,12 +114,12 @@ namespace Essentials.Commands {
             id = Utilities.GetPlayerByNameOrId(playerNameOrID)?.SteamUserId ?? id;
             /*IMyPlayer player = Utilities.GetPlayerByNameOrId(playerName);*/
             if (id == 0) {
-                Context.Respond($"Player '{playerNameOrID}' not found or ID is invalid.");
+                Context.Respond($"Игрок '{playerNameOrID}' не найден, или ID неверный.");
                 return;
             }
             var player = Utilities.GetPlayerByNameOrId(playerNameOrID);
             if (rank == null) {
-                Context.Respond("Rank does not exist!");
+                Context.Respond("Такого ранга не существует!");
                 return;
             }
 
@@ -147,8 +147,8 @@ namespace Essentials.Commands {
                 MySandboxGame.ConfigDedicated.Reserved.Remove(id);
             }
             MySession.Static.SetUserPromoteLevel(data.SteamID, RanksAndPermissions.ParseMyPromoteLevel(rank.KeenLevelRank));
-            Context.Respond($"{data.Player}'s rank set to {rank.RankName}");
-            Log.Info($"{data.Player}'s rank set to {rank.RankName}");
+            Context.Respond($"Игроку {data.Player} задан ранг {rank.RankName}");
+            Log.Info($"Игроку {data.Player} задан ранг {rank.RankName}");
             AccModule.UpdatePlayerAccount(data);
         }
 
@@ -156,12 +156,12 @@ namespace Essentials.Commands {
         [Permission(MyPromoteLevel.Admin)]
         public void Populate(string rank, string level) {
 
-            Context.Respond("Command disabled");
+            Context.Respond("Команда отключена");
             return;
 
             var commandManager = EssentialsPlugin.Instance.CommandManager;
             if (commandManager == null) {
-                Context.Respond("Must have an attached session to list commands");
+                Context.Respond("Чтобы показать команды, нужна активная сессия");
                 return;
             }
             commandManager.Commands.GetNode(Context.Args, out CommandTree.CommandNode node);
@@ -173,12 +173,12 @@ namespace Essentials.Commands {
                 var sb = new StringBuilder();
 
                 if (command != null && (Context.Player == null || command.MinimumPromoteLevel <= Context.Player.PromoteLevel)) {
-                    sb.AppendLine($"Syntax: {command.SyntaxHelp}");
+                    sb.AppendLine($"Синтаксис: {command.SyntaxHelp}");
                     sb.Append(command.HelpText);
                 }
 
                 if (node.Subcommands.Count() != 0)
-                    sb.Append($"\nSubcommands: {string.Join(", ", children)}");
+                    sb.Append($"\nПодкоманды: {string.Join(", ", children)}");
 
                 Context.Respond(sb.ToString());
             }
@@ -188,7 +188,7 @@ namespace Essentials.Commands {
                     if (command.IsCommand && (Context.Player == null || command.Command.MinimumPromoteLevel <= Context.Player.PromoteLevel))
                         sb.AppendLine($"{command.Command.SyntaxHelp}\n    {command.Command.HelpText}");
                 }
-                Context.Respond($"Available commands: {sb}");
+                Context.Respond($"Доступные команды: {sb}");
             }
         }
 
@@ -199,15 +199,15 @@ namespace Essentials.Commands {
             if (rank != null) {
                 RanksAndPermissionsModule.RankData InheritRank = RanksAndPermissions.GetRankData(inheritanceName);
                 if (InheritRank == null) {
-                    Context.Respond("The rank you are trying to add to the inheritance list does not exist!");
+                    Context.Respond("Ранга, который вы добавляете в наследование, не существует!");
                     return;
                 }
                 rank.Inherits.Add(inheritanceName);
                 RanksAndPermissions.UpdateRankObject(rank);
-                Context.Respond("Inheritance added!");
+                Context.Respond("Наследование добавлено!");
                 return;
             }
-            Context.Respond("The rank you are trying to add inheritence to does not exist");
+            Context.Respond("Ранга, которому вы добавляете наследование, не существует");
         }
 
         [Command("delinheritance")]
@@ -216,15 +216,15 @@ namespace Essentials.Commands {
             RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(rankName);
             if (rank != null) {
                 if (!rank.Inherits.Contains(inheritanceName)) {
-                    Context.Respond($"{rank.RankName} does not inherit {inheritanceName}");
+                    Context.Respond($"{rank.RankName} не наследует {inheritanceName}");
                     return;
                 }
                 rank.Inherits.Remove(inheritanceName);
                 RanksAndPermissions.UpdateRankObject(rank);
-                Context.Respond("Inheritance removed");
+                Context.Respond("Наследование убрано");
                 return;
             }
-            Context.Respond("The rank you are trying to remove inheritence from does not exist");
+            Context.Respond("Ранга, у которого вы убираете наследование, не существует");
 
         }
 
@@ -242,7 +242,7 @@ namespace Essentials.Commands {
             }
 
             if (!found) {
-                Context.Respond($"Rank '{rankName}' does not exist!");
+                Context.Respond($"Ранга '{rankName}' не существует!");
                 return;
             }
 
@@ -250,7 +250,7 @@ namespace Essentials.Commands {
                 string stringAfterChar = command.Substring(command.IndexOf("-") + 1);
                 if (data.Permissions.Allowed.Contains(stringAfterChar)) {
                     data.Permissions.Allowed.Remove(stringAfterChar);
-                    Context.Respond($"Permission to use command '{command}' has been removed from the {data.RankName} rank!");
+                    Context.Respond($"Снят запрет на команду '{command}' у ранга {data.RankName}!");
                     RanksAndPermissions.UpdateRankObject(data);
                     return;
                 }
@@ -258,12 +258,12 @@ namespace Essentials.Commands {
 
             if (!data.Permissions.Allowed.Contains(command)) {
                 data.Permissions.Allowed.Add(command);
-                Context.Respond($"Permission to use command '{command}' has been added to the {data.RankName} rank!");
+                Context.Respond($"Рангу {data.RankName} разрешена команда '{command}'!");
                 RanksAndPermissions.UpdateRankObject(data);
                 return;
             }
 
-            Context.Respond($"The rank '{data.RankName}' already has permission to use '{command}'");
+            Context.Respond($"Рангу '{data.RankName}' уже разрешена команда '{command}'");
         }
 
         [Command("delperm")]
@@ -280,7 +280,7 @@ namespace Essentials.Commands {
             }
 
             if (!found) {
-                Context.Respond($"Rank '{rankName}' does not exist!");
+                Context.Respond($"Ранга '{rankName}' не существует!");
                 return;
             }
 
@@ -288,7 +288,7 @@ namespace Essentials.Commands {
                 string stringAfterChar = command.Substring(command.IndexOf("-") + 1);
                 if (data.Permissions.Disallowed.Contains(stringAfterChar)) {
                     data.Permissions.Disallowed.Remove(stringAfterChar);
-                    Context.Respond($"Updated rank");
+                    Context.Respond($"Ранг обновлён");
                     RanksAndPermissions.UpdateRankObject(data);
                     return;
                 }
@@ -296,12 +296,12 @@ namespace Essentials.Commands {
 
             if (!data.Permissions.Disallowed.Contains(command)) {
                 data.Permissions.Disallowed.Add(command);
-                Context.Respond($"Permission to use command '{command}' has been actively revoked from the {data.RankName} rank!");
+                Context.Respond($"Рангу {data.RankName} запрещена команда '{command}'!");
                 RanksAndPermissions.UpdateRankObject(data);
                 return;
             }
 
-            Context.Respond($"Permission to use command '{command}' is already being actively revoked from the {data.RankName} rank!");
+            Context.Respond($"Рангу {data.RankName} уже запрещена команда '{command}'!");
         }
 
 
@@ -319,7 +319,7 @@ namespace Essentials.Commands {
             }
 
             if (!found) {
-                Context.Respond($"Player '{playerName}' does not have a registered account!");
+                Context.Respond($"У игрока '{playerName}' нет зарегистрированного аккаунта!");
                 return;
             }
 
@@ -327,7 +327,7 @@ namespace Essentials.Commands {
                 string stringAfterChar = command.Substring(command.IndexOf("-") + 1);
                 if (data.Permissions.Allowed.Contains(stringAfterChar)) {
                     data.Permissions.Allowed.Remove(stringAfterChar);
-                    Context.Respond($"Permission to use command '{command}' has been removed from {data.Player}'s account!");
+                    Context.Respond($"Снят запрет на команду '{command}' у игрока {data.Player}!");
                     AccModule.UpdatePlayerAccount(data);
                     return;
                 }
@@ -335,12 +335,12 @@ namespace Essentials.Commands {
 
             if (!data.Permissions.Allowed.Contains(command)) {
                 data.Permissions.Allowed.Add(command);
-                Context.Respond($"Permission to use command '{command}' has been added to {data.Player}'s account!");
+                Context.Respond($"Игроку {data.Player} разрешена команда '{command}'!");
                 AccModule.UpdatePlayerAccount(data);
                 return;
             }
 
-            Context.Respond($"The player '{data.Player}' already has permission to use '{command}'");
+            Context.Respond($"Игроку '{data.Player}' уже разрешена команда '{command}'");
         }
 
         [Command("delplayerperm")]
@@ -357,7 +357,7 @@ namespace Essentials.Commands {
             }
 
             if (!found) {
-                Context.Respond($"Player '{playerName}' does not have a registered account!");
+                Context.Respond($"У игрока '{playerName}' нет зарегистрированного аккаунта!");
                 return;
             }
 
@@ -365,7 +365,7 @@ namespace Essentials.Commands {
                 string stringAfterChar = command.Substring(command.IndexOf("-") + 1);
                 if (data.Permissions.Disallowed.Contains(stringAfterChar)) {
                     data.Permissions.Disallowed.Remove(stringAfterChar);
-                    Context.Respond($"Updated rank");
+                    Context.Respond($"Ранг обновлён");
                     AccModule.UpdatePlayerAccount(data);
                     return;
                 }
@@ -373,25 +373,25 @@ namespace Essentials.Commands {
 
             if (!data.Permissions.Disallowed.Contains(command)) {
                 data.Permissions.Disallowed.Add(command);
-                Context.Respond($"Permission to use command '{command}' has been actively revoked from  {data.Player}'s account!");
+                Context.Respond($"Игроку {data.Player} запрещена команда '{command}'!");
                 AccModule.UpdatePlayerAccount(data);
                 return;
             }
 
-            Context.Respond($"Permission to use command '{command}' is already being actively revoked from  {data.Player}'s account!");
+            Context.Respond($"Игроку {data.Player} уже запрещена команда '{command}'!");
         }
 
         [Command("listranks")]
         [Permission(MyPromoteLevel.None)]
         public void ListRanks(string listRankName) {
             bool found = false;
-            string Ranks = "Ranks: ";
+            string Ranks = "Ранги: ";
             foreach (var rank in RanksAndPermissionsModule.Ranks) {
                 found = true;
                 Ranks += ($"{rank.RankName},");
             }
             if(!found) {
-                Context.Respond("No ranks found");
+                Context.Respond("Ранги не найдены");
                 return;
             }
             Ranks = Ranks.TrimEnd(',');

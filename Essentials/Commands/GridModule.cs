@@ -23,7 +23,7 @@ namespace Essentials
     [Category("grids")]
     public class GridModule : CommandModule
     {
-        [Command("setowner", "Sets grid ownership to the given player or ID.", "Usage: setowner <grid> <newowner>")]
+        [Command("setowner", "Передаёт грид указанному игроку или ID.", "Использование: setowner <grid> <newowner>")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void SetOwner(string gridName, string playerName)
         {
@@ -32,7 +32,7 @@ namespace Essentials
 
             if (!(entity is IMyCubeGrid grid))
             {
-                Context.Respond($"Grid {gridName} not found.");
+                Context.Respond($"Грид {gridName} не найден.");
                 return;
             }
 
@@ -43,14 +43,14 @@ namespace Essentials
                 var player = Context.Torch.CurrentSession?.Managers?.GetManager<IMultiplayerManagerBase>().GetPlayerByName(playerName);
                 if (player == null)
                 {
-                    Context.Respond($"Player {playerName} not found.");
+                    Context.Respond($"Игрок {playerName} не найден.");
                     return;
                 }
                 identityId = player.IdentityId;
             }
 
             grid.ChangeGridOwnership(identityId, MyOwnershipShareModeEnum.Faction);
-            Context.Respond($"Transferred ownership of {grid.DisplayName} to {identityId}");
+            Context.Respond($"Грид {grid.DisplayName} передан владельцу {identityId}");
 
             /*
             grid.GetBlocks(new List<IMySlimBlock>(), block =>
@@ -66,7 +66,7 @@ namespace Essentials
             });*/
         }
 
-        [Command("ejectall", "Ejects all Players from given grid.")]
+        [Command("ejectall", "Высаживает всех игроков из указанного грида.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void Eject(string gridName = null) 
         {
@@ -76,7 +76,7 @@ namespace Essentials
             {
                 if(Context.Player == null) 
                 {
-                    Context.Respond("The console always has to pass a gridname!");
+                    Context.Respond("Из консоли нужно всегда указывать имя грида!");
                     return;
                 }
 
@@ -84,7 +84,7 @@ namespace Essentials
 
                 if (character == null) 
                 {
-                    Context.Respond("You need to spawn into a character when not using gridname!");
+                    Context.Respond("Без имени грида нужно находиться в персонаже!");
                     return;
                 }
 
@@ -92,7 +92,7 @@ namespace Essentials
 
                 if (gridGroups.Count == 0) 
                 {
-                    Context.Respond("No grid in your line of sight found! Remember to NOT use spectator!");
+                    Context.Respond("В прямой видимости нет грида! Не используйте режим наблюдателя!");
                     return;
                 }
             } 
@@ -102,13 +102,13 @@ namespace Essentials
 
                 if (gridGroups.Count == 0) 
                 {
-                    Context.Respond($"Grid with name '{gridName}' was not found!");
+                    Context.Respond($"Грид с именем '{gridName}' не найден!");
                     return;
                 }
 
                 if (gridGroups.Count > 1) 
                 {
-                    Context.Respond($"There were multiple grids with name '{gridName}' to prevent any mistakes this command will not be executed!");
+                    Context.Respond($"Гридов с именем '{gridName}' несколько, поэтому во избежание ошибок команда не выполнена!");
                     return;
                 }
             }
@@ -133,10 +133,10 @@ namespace Essentials
                 }
             }
 
-            Context.Respond($"Ejected '{ejectedPlayersCount}' players from their seats.");
+            Context.Respond($"Высажено игроков: {ejectedPlayersCount}.");
         }
 
-        [Command("static large", "Makes all large grids static.")]
+        [Command("static large", "Делает все большие гриды статичными.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void StaticLarge()
         {
@@ -144,7 +144,7 @@ namespace Essentials
                 grid.OnConvertedToStationRequest(); //Keen why do you do this to me?
         }
 
-        [Command("stopall", "Stops all moving grids.")]
+        [Command("stopall", "Останавливает все движущиеся гриды.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void StopAll()
         {
@@ -154,7 +154,7 @@ namespace Essentials
                 }
         }
 
-        [Command("list", "Lists all grids you own at least 50% of. Will give you positions if the server admin enables the option.")]
+        [Command("list", "Показывает гриды, которыми вы владеете хотя бы на 50%. Координаты показываются, если админ сервера включил эту настройку.")]
         [Permission(MyPromoteLevel.None)]
         public void List()
         {
@@ -170,43 +170,43 @@ namespace Essentials
                 if (grid.BigOwners.Contains(id))
                 {
 
-                    sb.AppendLine($"{grid.DisplayName} - {grid.GridSizeEnum} - {grid.BlocksCount} blocks - Position {(EssentialsPlugin.Instance.Config.UtilityShowPosition ? grid.PositionComp.GetPosition().ToString() : "Unknown")}");
+                    sb.AppendLine($"{grid.DisplayName} - {grid.GridSizeEnum} - блоков: {grid.BlocksCount} - Координаты: {(EssentialsPlugin.Instance.Config.UtilityShowPosition ? grid.PositionComp.GetPosition().ToString() : "неизвестно")}");
                     if (EssentialsPlugin.Instance.Config.MarkerShowPosition)
                     {
-                        var gridGPS = MyAPIGateway.Session?.GPS.Create(grid.DisplayName, ($"{grid.DisplayName} - {grid.GridSizeEnum} - {grid.BlocksCount} blocks"), grid.PositionComp.GetPosition(), true);
+                        var gridGPS = MyAPIGateway.Session?.GPS.Create(grid.DisplayName, ($"{grid.DisplayName} - {grid.GridSizeEnum} - блоков: {grid.BlocksCount}"), grid.PositionComp.GetPosition(), true);
 
                         MyAPIGateway.Session?.GPS.AddGps(Context.Player.IdentityId, gridGPS);
                     }
                 }
             }
 
-            ModCommunication.SendMessageTo(new DialogMessage("Grids List", $"Ships/Stations owned by {Context.Player.DisplayName}", sb.ToString()), Context.Player.SteamUserId);
+            ModCommunication.SendMessageTo(new DialogMessage("Список гридов", $"Корабли и станции игрока {Context.Player.DisplayName}", sb.ToString()), Context.Player.SteamUserId);
         }
 
         private readonly string ExportPath = "ExportedGrids\\{0}.xml";
 
-        [Command("export", "Export the given grid to the given file name.")]
+        [Command("export", "Сохраняет указанный грид в файл с указанным именем.")]
         public void Export(string gridName, string exportName)
         {
             Directory.CreateDirectory("ExportedGrids");
             if (!Utilities.TryGetEntityByNameOrId(gridName, out var ent) || !(ent is IMyCubeGrid))
             {
-                Context.Respond("Grid not found.");
+                Context.Respond("Грид не найден.");
                 return;
             }
 
             var path = string.Format(ExportPath, exportName);
             if (File.Exists(path))
             {
-                Context.Respond("Export file already exists.");
+                Context.Respond("Файл экспорта уже существует.");
                 return;
             }
 
             MyObjectBuilderSerializerKeen.SerializeXML(path, false, ent.GetObjectBuilder());
-            Context.Respond($"Grid saved to {path}");
+            Context.Respond($"Грид сохранён в {path}");
         }
         
-        [Command("import", "Import a grid from file and spawn it by the given entity/player.")]
+        [Command("import", "Загружает грид из файла и создаёт его рядом с указанной сущностью или игроком.")]
         public void Import(string gridName, string targetName = null)
         {
             Directory.CreateDirectory("ExportedGrids");
@@ -214,7 +214,7 @@ namespace Essentials
             {
                 if (Context.Player == null)
                 {
-                    Context.Respond("Target entity must be specified.");
+                    Context.Respond("Нужно указать целевую сущность.");
                     return;   
                 }
 
@@ -223,25 +223,25 @@ namespace Essentials
 
             if (!Utilities.TryGetEntityByNameOrId(targetName, out var ent))
             {
-                Context.Respond("Target entity not found.");
+                Context.Respond("Целевая сущность не найдена.");
                 return;
             }
             
             var path = string.Format(ExportPath, gridName);
             if (!File.Exists(path))
             {
-                Context.Respond("File does not exist.");
+                Context.Respond("Файл не существует.");
                 return;
             }
 
             if (MyObjectBuilderSerializerKeen.DeserializeXML(path, out MyObjectBuilder_CubeGrid grid))
             {
-                Context.Respond($"Importing grid from {path}");
+                Context.Respond($"Загрузка грида из {path}");
                 MyEntities.RemapObjectBuilder(grid);
                 var pos = MyEntities.FindFreePlace(ent.GetPosition(), grid.CalculateBoundingSphere().Radius);
                 if (pos == null)
                 {
-                    Context.Respond("No free place.");
+                    Context.Respond("Нет свободного места.");
                     return;
                 }
 

@@ -52,7 +52,7 @@ namespace Essentials.Commands
         private static MyProceduralAsteroidCellGenerator _generatorInstance;
         private static MyProceduralAsteroidCellGenerator GeneratorInstance => _generatorInstance ?? (_generatorInstance = _asteroidGenerator(MyProceduralWorldGenerator.Static));
 
-        [Command("help", "Lists all voxel commands.")]
+        [Command("help", "Показывает все команды вокселей.")]
         [Permission(MyPromoteLevel.Admin)]
         public void Help()
         {
@@ -69,7 +69,7 @@ namespace Essentials.Commands
             Context.Respond(sb.ToString());
         }
 
-        [Command("reset all", "Resets all voxel maps.")]
+        [Command("reset all", "Сбрасывает все воксельные карты.")]
         public void ResetAll(bool deleteStorage = false)
         {
             var voxelMaps = MyEntities.GetEntities().OfType<MyVoxelBase>();
@@ -106,10 +106,10 @@ namespace Essentials.Commands
 
             ModCommunication.SendMessageToClients(new VoxelResetMessage(resetIds.ToArray()));
 
-            Context.Respond($"Reset {resetIds.Count} voxel maps, deleted {deleted}.");
+            Context.Respond($"Сброшено воксельных карт: {resetIds.Count}, удалено: {deleted}.");
         }
 
-        [Command("cleanup asteroids", "Resets all asteroids that don't have a grid or player nearby.")]
+        [Command("cleanup asteroids", "Сбрасывает все астероиды, рядом с которыми нет гридов и игроков.")]
         public void CleanupAsteroids(bool deleteStorage = false)
         {
             var voxelMaps = MyEntities.GetEntities().OfType<MyVoxelMap>();
@@ -154,10 +154,10 @@ namespace Essentials.Commands
 
             ModCommunication.SendMessageToClients(new VoxelResetMessage(resetIds.ToArray()));
 
-            Context.Respond($"Reset {resetIds.Count} voxel maps, deleted {deleted}.");
+            Context.Respond($"Сброшено воксельных карт: {resetIds.Count}, удалено: {deleted}.");
         }
 
-        [Command("cleanup distant", "Resets all asteroids that don't have a grid or player inside the specified radius.")]
+        [Command("cleanup distant", "Сбрасывает все астероиды, в указанном радиусе от которых нет гридов и игроков.")]
         public void CleanupAsteroidsDistant(double distance = 1000, bool deleteStorage = false)
         {
 
@@ -203,17 +203,17 @@ namespace Essentials.Commands
 
             ModCommunication.SendMessageToClients(new VoxelResetMessage(resetIds.ToArray()));
 
-            Context.Respond($"Reset {resetIds.Count} voxel maps, deleted {deleted}.");
+            Context.Respond($"Сброшено воксельных карт: {resetIds.Count}, удалено: {deleted}.");
         }
 
-        [Command("scan planets", "Shows how many changed voxel cells of the planets have no grid or player inside the specified radius.")]
+        [Command("scan planets", "Показывает, сколько изменённых воксельных ячеек планет не имеют гридов и игроков в указанном радиусе.")]
         [Permission(MyPromoteLevel.Admin)]
         public void ScanPlanets(double distance = 1000)
         {
             RunPlanetCleaner(distance, 0, false);
         }
 
-        [Command("cleanup planets", "Reverts changed voxel cells of the planets that have no grid or player inside the specified radius.")]
+        [Command("cleanup planets", "Восстанавливает изменённые воксельные ячейки планет, в указанном радиусе от которых нет гридов и игроков.")]
         [Permission(MyPromoteLevel.Admin)]
         public void CleanupPlanets(double distance = 1000, int maxCells = 50000)
         {
@@ -225,13 +225,13 @@ namespace Essentials.Commands
             //written this way for NaN, which would turn off the protection of grids and players
             if (!(distance >= 0) || double.IsInfinity(distance) || maxCells < 0)
             {
-                Context.Respond("Distance must be a number, not negative, and maxCells can't be negative.");
+                Context.Respond("Расстояние должно быть неотрицательным числом, maxCells тоже не может быть отрицательным.");
                 return;
             }
 
             if (!PlanetVoxelCleaner.IsSupported)
             {
-                Context.Respond("This game version is not supported: voxel storage fields not found. Nothing was changed.");
+                Context.Respond("Эта версия игры не поддерживается: не найдены поля хранилища вокселей. Ничего не изменено.");
                 _log.Error("Planet voxel cleaner: voxel storage fields not found");
                 return;
             }
@@ -240,19 +240,19 @@ namespace Essentials.Commands
 
             var sb = new StringBuilder();
             foreach (var p in planets)
-                sb.AppendLine($"{p.Name}: {p.ChangedCells:#,##0} changed cells, {p.ProtectedCells:#,##0} protected, {p.CleanableCells:#,##0} can be cleaned (up to {p.CleanableVoxels:#,##0} voxels){(p.Error == null ? "" : $", failed after cleaning {p.CleanedCells:#,##0}: {p.Error}")}");
+                sb.AppendLine($"{p.Name}: изменённых ячеек: {p.ChangedCells:#,##0}, защищено: {p.ProtectedCells:#,##0}, можно очистить: {p.CleanableCells:#,##0} (вокселей до {p.CleanableVoxels:#,##0}){(p.Error == null ? "" : $", ошибка после очистки ячеек {p.CleanedCells:#,##0}: {p.Error}")}");
 
             if (clean)
-                sb.Append($"Cleaned {planets.Sum(p => p.CleanedCells):#,##0} of {planets.Sum(p => p.CleanableCells):#,##0} cells.");
+                sb.Append($"Очищено ячеек: {planets.Sum(p => p.CleanedCells):#,##0} из {planets.Sum(p => p.CleanableCells):#,##0}.");
             else
-                sb.Append($"Total: {planets.Sum(p => p.CleanableCells):#,##0} cells can be cleaned.");
+                sb.Append($"Всего можно очистить ячеек: {planets.Sum(p => p.CleanableCells):#,##0}.");
 
             var report = sb.ToString();
             Context.Respond(report);
             _log.Info($"Planet voxels, distance {distance}, maxCells {maxCells}:\n{report}");
         }
 
-        [Command("reset planets", "Resets all planets.")]
+        [Command("reset planets", "Сбрасывает все планеты.")]
         public void ResetPlanets()
         {
             var voxelMaps = MyEntities.GetEntities().OfType<MyPlanet>();
@@ -277,10 +277,10 @@ namespace Essentials.Commands
 
             ModCommunication.SendMessageToClients(new VoxelResetMessage(resetIds.ToArray()));
 
-            Context.Respond($"Reset {resetIds.Count} voxel maps.");
+            Context.Respond($"Сброшено воксельных карт: {resetIds.Count}.");
         }
 
-        [Command("reset planet", "Resets the planet with a given name.")]
+        [Command("reset planet", "Сбрасывает планету с указанным названием.")]
         public void ResetPlanet(string planetName)
         {
             var maps = new List<MyPlanet>(2);
@@ -293,71 +293,71 @@ namespace Essentials.Commands
             switch (maps.Count)
             {
                 case 0:
-                    Context.Respond($"Couldn't find planet with name {planetName}");
+                    Context.Respond($"Планета с названием {planetName} не найдена");
                     return;
                 case 1:
                     var map = maps[0];
                     map.Storage.Reset(MyStorageDataTypeFlags.All);
                     ModCommunication.SendMessageToClients(new VoxelResetMessage(new long[] { map.EntityId }));
-                    Context.Respond($"Reset planet {map.Name}");
+                    Context.Respond($"Планета {map.Name} сброшена");
                     return;
                 default:
-                    Context.Respond($"Found {maps.Count} planets matching '{planetName}'. Please select from list:");
+                    Context.Respond($"Планет по запросу '{planetName}': {maps.Count}. Выберите из списка:");
                     Context.Respond(string.Join("\r\n", maps.Select(m => m.StorageName)));
                     return;
             }
         }
 
 
-        [Command("reset area", "Resets voxel damange in specified radius from player")]
+        [Command("reset area", "Восстанавливает воксели в указанном радиусе от игрока")]
         [Permission(MyPromoteLevel.Admin)]
         public void ResetVoxelArea(float Radius)
         {
             if (Context.Player == null)
             {
-                Context.Respond("Invalid command input! Must be ingame!");
+                Context.Respond("Команда доступна только в игре!");
                 return;
             }
 
 
             if (Radius <= 0)
             {
-                Context.Respond("Inavlid radius!");
+                Context.Respond("Неверный радиус!");
                 return;
             }
 
 
             if (ResetVoxelInArea(Context.Player.GetPosition(), Radius))
             {
-                Context.Respond("Voxel reset complete!");
+                Context.Respond("Воксели восстановлены!");
             }
             else
             {
-                Context.Respond("Couldnt reset voxels! Check log for more information!");
+                Context.Respond("Не удалось восстановить воксели! Подробности в логе!");
             }
 
 
         }
 
-        [Command("reset gps", "Resets voxel damange in specified radius from given point")]
+        [Command("reset gps", "Восстанавливает воксели в указанном радиусе от заданной точки")]
         [Permission(MyPromoteLevel.Admin)]
         public void ResetVoxelArea(float X, float Y, float Z, float Radius)
         {
             Vector3D ResetTarget = new Vector3D(X, Y, Z);
             if (Radius <= 0)
             {
-                Context.Respond("Invalid radius!");
+                Context.Respond("Неверный радиус!");
                 return;
             }
 
 
             if (ResetVoxelInArea(ResetTarget, Radius))
             {
-                Context.Respond("Voxel reset complete!");
+                Context.Respond("Воксели восстановлены!");
             }
             else
             {
-                Context.Respond("Couldnt reset voxels! Check log for more information!");
+                Context.Respond("Не удалось восстановить воксели! Подробности в логе!");
             }
         }
 

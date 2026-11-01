@@ -14,30 +14,30 @@ namespace Essentials.Commands
     {
         private static readonly Logger Log = LogManager.GetLogger("Essentials");
 
-        [Command("scan", "Find grids matching the given conditions")]
+        [Command("scan", "Считает гриды, подходящие под указанные условия")]
         public void Scan()
         {
             var count = ConditionsChecker.ScanConditions(Context, Context.Args).Count();
-            Context.Respond($"Found {count} grids matching the given conditions.");
+            Context.Respond($"Найдено гридов по указанным условиям: {count}.");
         }
 
-        [Command("list", "Lists grids matching the given conditions")]
+        [Command("list", "Показывает список гридов, подходящих под указанные условия")]
         public void List()
         {
             var grids = ConditionsChecker.ScanConditions(Context, Context.Args).OrderBy(g => g.DisplayName).ToList();
             if (Context.SentBySelf)
             {
-                Context.Respond(String.Join("\n", grids.Select((g, i) => $"{i + 1}. {grids[i].DisplayName} ({grids[i].BlocksCount} block(s))")));
-                Context.Respond($"Found {grids.Count} grids matching the given conditions.");
+                Context.Respond(String.Join("\n", grids.Select((g, i) => $"{i + 1}. {grids[i].DisplayName} (блоков: {grids[i].BlocksCount})")));
+                Context.Respond($"Найдено гридов по указанным условиям: {grids.Count}.");
             }
             else
             {
-                var m = new DialogMessage("Cleanup", null, $"Found {grids.Count} matching", String.Join("\n", grids.Select((g, i) => $"{i + 1}. {grids[i].DisplayName} ({grids[i].BlocksCount} block(s))")));
+                var m = new DialogMessage("Очистка", null, $"Найдено: {grids.Count}", String.Join("\n", grids.Select((g, i) => $"{i + 1}. {grids[i].DisplayName} (блоков: {grids[i].BlocksCount})")));
                 ModCommunication.SendMessageTo(m, Context.Player.SteamUserId);
             }
         }
 
-        [Command("delete", "Delete grids matching the given conditions")]
+        [Command("delete", "Удаляет гриды, подходящие под указанные условия")]
         public void Delete()
         {
             var count = 0;
@@ -49,11 +49,11 @@ namespace Essentials.Commands
                 count++;
             }
 
-            Context.Respond($"Deleted {count} grids matching the given conditions.");
+            Context.Respond($"Удалено гридов по указанным условиям: {count}.");
             Log.Info($"Cleanup deleted {count} grids matching conditions {string.Join(", ", Context.Args)}");
         }
 
-        [Command("delete floatingobjects", "deletes floating objects")]
+        [Command("delete floatingobjects", "Удаляет летающие предметы")]
         public void FlObjDelete()
         {
             var count = 0;
@@ -63,11 +63,11 @@ namespace Essentials.Commands
                 floater.Close();
                 count++;
             }
-            Context.Respond($"Deleted {count} floating objects.");
+            Context.Respond($"Удалено летающих предметов: {count}.");
             Log.Info($"Cleanup deleted {count} floating objects");
         }
 
-        [Command("help", "Lists all cleanup conditions.")]
+        [Command("help", "Показывает все условия очистки.")]
         public void Help()
         {
             var sb = new StringBuilder();
@@ -78,7 +78,7 @@ namespace Essentials.Commands
             }
 
             if (!Context.SentBySelf)
-                ModCommunication.SendMessageTo(new DialogMessage("Cleanup help", null, sb.ToString()), Context.Player.SteamUserId);
+                ModCommunication.SendMessageTo(new DialogMessage("Справка по очистке", null, sb.ToString()), Context.Player.SteamUserId);
             else
                 Context.Respond(sb.ToString());
         }

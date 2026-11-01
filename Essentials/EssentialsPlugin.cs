@@ -368,14 +368,14 @@ namespace Essentials
 
             if (isNewUser && !string.IsNullOrEmpty(Config.NewUserMotd))
             {
-                var msg = new DialogMessage(MySession.Static.Name, "New User Message Of The Day", Config.NewUserMotd.Replace("%player%", name));
+                var msg = new DialogMessage(MySession.Static.Name, "Сообщение дня для новых игроков", Config.NewUserMotd.Replace("%player%", name));
                 ModCommunication.SendMessageTo(msg, id);
                 return;
             }
 
             if (!string.IsNullOrEmpty(Config.Motd))
             {
-                var msg = new DialogMessage(MySession.Static.Name, "Message Of The Day", Config.Motd.Replace("%player%", name));
+                var msg = new DialogMessage(MySession.Static.Name, "Сообщение дня", Config.Motd.Replace("%player%", name));
                 ModCommunication.SendMessageTo(msg, id);
                 return;
             }
@@ -383,7 +383,7 @@ namespace Essentials
             if (!onSessionChanged) // otherwise default motd shows up twice on connection
             {
                 var txt = GetDefaultMotdText();
-                var msg = new DialogMessage(MySession.Static.Name, "Message Of The Day", txt);
+                var msg = new DialogMessage(MySession.Static.Name, "Сообщение дня", txt);
                 ModCommunication.SendMessageTo(msg, id);
             }
         }
@@ -410,7 +410,7 @@ namespace Essentials
                 var tag = $"#{new Random().NextDouble() * 1000:0}";
                 Log.Info($"Failed to load MotD. Tag: {tag}. Error:");
                 Log.Error(e);
-                return $"Failed to load MotD. Contact admin.\nAdmin: text search in log: {tag}";
+                return $"Не удалось загрузить сообщение дня. Обратитесь к администратору.\nАдминистратору: поиск в логе: {tag}";
             }
         }
 

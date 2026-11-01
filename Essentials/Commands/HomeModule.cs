@@ -33,75 +33,75 @@ namespace Essentials.Commands {
         [Permission(MyPromoteLevel.None)]
         public void addHome(string homeName) {
             if (!EssentialsPlugin.Instance.Config.EnableHomes) {
-                Context.Respond("Homes are not enabled for this server!");
+                Context.Respond("Дома на этом сервере отключены!");
                 return;
             }
             var Account = PlayerAccounts.GetAccount(Context.Player.SteamUserId);
             var Rank = RanksAndPermissionsModule.GetRankData(Account.Rank);
 
             if (Rank == null || Account == null) {
-                Context.Respond("Error loading required information. Home not set");
+                Context.Respond("Ошибка загрузки данных. Дом не установлен");
                 return;
             }
 
             if (Account.Homes.Count >= Rank.MaxHomes ) {
-                Context.Respond("You have the maximum amount of homes!");
+                Context.Respond("У вас уже максимальное число домов!");
                 return;
             }
 
             Account.Homes.Add(homeName, Context.Player.GetPosition());
             PlayerAccounts.UpdatePlayerAccount(Account);
-            Context.Respond("Home successfully added!");
+            Context.Respond("Дом добавлен!");
         }
 
         [Command("del")]
         [Permission(MyPromoteLevel.None)]
         public void delHome(string homeName) {
             if (!EssentialsPlugin.Instance.Config.EnableHomes) {
-                Context.Respond("Homes are not enabled for this server!");
+                Context.Respond("Дома на этом сервере отключены!");
                 return;
             }
             var Account = PlayerAccounts.GetAccount(Context.Player.SteamUserId);
             var Rank = RanksAndPermissionsModule.GetRankData(Account.Rank);
 
             if (Rank == null || Account == null) {
-                Context.Respond("Error loading required information. Home not deleted!");
+                Context.Respond("Ошибка загрузки данных. Дом не удалён!");
                 return;
             }
 
             if (Account.Homes.ContainsKey(homeName)) {
                 Account.Homes.Remove(homeName);
-                Context.Respond("Home successfully removed!");
+                Context.Respond("Дом удалён!");
                 PlayerAccounts.UpdatePlayerAccount(Account);
                 return;
             }
 
-            Context.Respond("The stated home does not exist!");
+            Context.Respond("Такого дома не существует!");
         }
 
         [Command("list")]
         [Permission(MyPromoteLevel.None)]
         public void ListHomes() {
             if (!EssentialsPlugin.Instance.Config.EnableHomes) {
-                Context.Respond("Homes are not enabled for this server!");
+                Context.Respond("Дома на этом сервере отключены!");
                 return;
             }
             var Account = PlayerAccounts.GetAccount(Context.Player.SteamUserId);
             var Rank = RanksAndPermissionsModule.GetRankData(Account.Rank);
 
             if (Rank == null || Account == null) {
-                Context.Respond("Error loading required information. Home not deleted!");
+                Context.Respond("Ошибка загрузки данных. Дом не удалён!");
                 return;
             }
 
             if (Account.Homes.Count == 0) {
-                Context.Respond("You do not have any homes!");
+                Context.Respond("У вас нет домов!");
                 return;
             }
 
             StringBuilder sb = new StringBuilder();
 
-            sb.Append("List of homes: ");
+            sb.Append("Список домов: ");
             foreach(var homes in Account.Homes) {
                 sb.Append($"'{homes.Key}', ");
             }
@@ -113,14 +113,14 @@ namespace Essentials.Commands {
         [Permission(MyPromoteLevel.None)]
         public void GotoHome(string homeName) {
             if (!EssentialsPlugin.Instance.Config.EnableHomes) {
-                Context.Respond("Homes are not enabled for this server!");
+                Context.Respond("Дома на этом сервере отключены!");
                 return;
             }
             var Account = PlayerAccounts.GetAccount(Context.Player.SteamUserId);
             var Rank = RanksAndPermissionsModule.GetRankData(Account.Rank);
 
             if (Rank == null || Account == null) {
-                Context.Respond("Error loading required information.");
+                Context.Respond("Ошибка загрузки данных.");
                 return;
             }
 
@@ -128,7 +128,7 @@ namespace Essentials.Commands {
 
             var targetEntity = Context.Player?.Controller.ControlledEntity.Entity;
             if (Context.Player?.Controller.ControlledEntity is MyCockpit controller) {
-                Context.Respond("You cannot use !home while in control of a grid");
+                Context.Respond("Нельзя использовать !home, управляя гридом");
                 return;
             }
 
@@ -139,7 +139,7 @@ namespace Essentials.Commands {
             for (int i = 0; i != 5000; i++) {
                 Context.Player.Character.Physics.SetSpeeds(Vector3.Zero, Vector3.Zero);
             }
-            Context.Respond($"Teleported to '{homeName}'");
+            Context.Respond($"Вы перемещены в '{homeName}'");
         }
     }
 }

@@ -18,7 +18,7 @@ namespace Essentials.Commands
             c.MessageProcessing += MessageProcessing;
         }
 
-        [Command("list", "Lists all available info commands.")]
+        [Command("list", "Показывает все доступные информационные команды.")]
         public void List()
         {
             Context.Respond(string.Join(", ", EssentialsPlugin.Instance.Config.InfoCommands.Select(i => i.Command).Where(c => !string.IsNullOrEmpty(c))));

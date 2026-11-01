@@ -21,100 +21,100 @@ namespace Essentials.Commands
     [Category("admin")]
     public class AdminModule : CommandModule
     {
-        [Command("stats", "Get performance statistics of the server")]
+        [Command("stats", "Показывает статистику производительности сервера")]
         [Permission(MyPromoteLevel.Admin)]
         public void Statistics()
         {
             var sb = new StringBuilder();
-            sb.AppendLine("Generic:");
+            sb.AppendLine("Общее:");
             Stats.Generic.WriteTo(sb);
-            sb.AppendLine("Network:");
+            sb.AppendLine("Сеть:");
             Stats.Network.WriteTo(sb);
-            sb.AppendLine("Timing:");
+            sb.AppendLine("Время:");
             Stats.Timing.WriteTo(sb);
 
             if (Context?.Player?.SteamUserId > 0)
-                ModCommunication.SendMessageTo(new DialogMessage("Statistics", null, sb.ToString()) , Context.Player.SteamUserId);
+                ModCommunication.SendMessageTo(new DialogMessage("Статистика", null, sb.ToString()) , Context.Player.SteamUserId);
             else
                 Context.Respond(sb.ToString());
         }
 
-        [Command("playercount", "Gets or sets the max number of players on the server")]
+        [Command("playercount", "Показывает или задаёт максимальное число игроков на сервере")]
         [Permission(MyPromoteLevel.Admin)]
         public void PlayerCount(int count = -1)
         {
             if (count == -1)
             {
-                Context.Respond($"Max player count: {MyMultiplayer.Static.MemberLimit}. Current online players: {MyMultiplayer.Static.MemberCount - 1}");
+                Context.Respond($"Максимум игроков: {MyMultiplayer.Static.MemberLimit}. Сейчас онлайн: {MyMultiplayer.Static.MemberCount - 1}");
                 return;
             }
 
             MyMultiplayer.Static.MemberLimit = count;
-            Context.Respond($"Max player count: {MyMultiplayer.Static.MemberLimit}. Current online players: {MyMultiplayer.Static.MemberCount - 1}");
+            Context.Respond($"Максимум игроков: {MyMultiplayer.Static.MemberLimit}. Сейчас онлайн: {MyMultiplayer.Static.MemberCount - 1}");
         }
 
-        [Command("playerlist", "Lists current players on the server")]
+        [Command("playerlist", "Показывает список игроков на сервере")]
         [Permission(MyPromoteLevel.Admin)]
         public void ListPlayers()
         {
             if(MySession.Static.Players.GetOnlinePlayerCount() == 0)
             {
-                Context.Respond("No players online");
+                Context.Respond("Нет игроков онлайн");
                 return;
             }
             StringBuilder sb = new StringBuilder();
             var players = MySession.Static.Players.GetOnlinePlayers();
             if (players.Count == 0)
             {
-                Context.Respond("No Players Online");
+                Context.Respond("Нет игроков онлайн");
                 return;
             }
 
-            sb.AppendLine($"Found {players.Count} Players on server");
+            sb.AppendLine($"Игроков на сервере: {players.Count}");
             foreach(var player in players)
             {
                 sb.AppendLine($"{player.DisplayName}");
-                sb.AppendLine($">PlayerId: {player.Identity.IdentityId}");
+                sb.AppendLine($">ID личности: {player.Identity.IdentityId}");
                 sb.AppendLine($">SteamId: {player.Id.SteamId}");
             }
             if (Context.Player == null)
                 Context.Respond(sb.ToString());
             else if (Context?.Player?.SteamUserId > 0)
             {
-                ModCommunication.SendMessageTo(new DialogMessage("List of Online Players", $"{players.Count} players Online", sb.ToString()), Context.Player.SteamUserId);
+                ModCommunication.SendMessageTo(new DialogMessage("Игроки онлайн", $"Онлайн: {players.Count}", sb.ToString()), Context.Player.SteamUserId);
             }
         }
 
 
-        [Command("runauto", "Runs the auto command with the given commandName immediately")]
+        [Command("runauto", "Сразу запускает автокоманду с указанным именем")]
         [Permission(MyPromoteLevel.Admin)]
         public void RunAuto(string name)
         {
             var command = EssentialsPlugin.Instance.Config.AutoCommands.FirstOrDefault(c => c.Name.Equals(name));
             if (command == null)
             {
-                Context.Respond($"Couldn't find an auto command with the commandName {name}");
+                Context.Respond($"Автокоманда с именем {name} не найдена");
                 return;
             }
-            Context.Respond($"Running the autocommand {command.Name}");
+            Context.Respond($"Запуск автокоманды {command.Name}");
             command.RunNow();
         }
 
-        [Command("cancelauto", "Cancels the auto command with the given commandName immediately")]
+        [Command("cancelauto", "Сразу отменяет автокоманду с указанным именем")]
         [Permission(MyPromoteLevel.Admin)]
         public void EndAuto(string commandName)
         {
             var command = EssentialsPlugin.Instance.Config.AutoCommands.FirstOrDefault(c => c.Name.Equals(commandName));
             if (command == null)
             {
-                Context.Respond($"Couldn't find an auto command with the commandName {commandName}");
+                Context.Respond($"Автокоманда с именем {commandName} не найдена");
                 return;
             }
-            Context.Respond($"AutoCommand {command.Name} cancelled");
+            Context.Respond($"Автокоманда {command.Name} отменена");
             command.Cancel();
         }
 
-        [Command("cancelautobyindex", "Cancels the auto command with the given index immediately")]
+        [Command("cancelautobyindex", "Сразу отменяет автокоманду с указанным номером")]
         [Permission(MyPromoteLevel.Admin)]
         public void EndByOrder(int commandNumber = 0)
         {
@@ -122,26 +122,26 @@ namespace Essentials.Commands
 
             if (commands.Count == 0)
             {
-                Context.Respond("No active autocommand found");
+                Context.Respond("Нет активных автокоманд");
                 return;
             }
 
             if (commandNumber < 1 || commandNumber > commands.Count)
             {
-                Context.Respond($"{commandNumber} number is out of range");
+                Context.Respond($"Номер {commandNumber} вне допустимого диапазона");
                 return;
             }
             var command = commands[commandNumber - 1];
             if (command == null)
             {
-                Context.Respond($"Couldn't find an auto command from provided number");
+                Context.Respond($"Автокоманда с таким номером не найдена");
                 return;
             }
-            Context.Respond($"AutoCommand {command.Name} cancelled");
+            Context.Respond($"Автокоманда {command.Name} отменена");
             command.Cancel();
         }
 
-        [Command("listauto", "Lists all detected autocommands ")]
+        [Command("listauto", "Показывает все найденные автокоманды")]
         [Permission(MyPromoteLevel.Admin)]
         public void ListAuto()
         {
@@ -156,18 +156,18 @@ namespace Essentials.Commands
 
             if (Context.Player == null)
             {
-                Context.Respond("Current AutoCommands:");
+                Context.Respond("Текущие автокоманды:");
                 Context.Respond(sb.ToString());
 
             }
 
             else
             {
-                ModCommunication.SendMessageTo(new DialogMessage("Current AutoCommands",$"Found {commands.Count} Commands",sb.ToString()), Context.Player.SteamUserId);
+                ModCommunication.SendMessageTo(new DialogMessage("Текущие автокоманды",$"Найдено команд: {commands.Count}",sb.ToString()), Context.Player.SteamUserId);
             }
         }
 
-        [Command("listrunningauto", "Lists all running autocommands ")]
+        [Command("listrunningauto", "Показывает все запущенные автокоманды")]
         [Permission(MyPromoteLevel.Admin)]
         public void ListAutoRunning()
         {
@@ -175,7 +175,7 @@ namespace Essentials.Commands
 
             if (commands.Count == 0)
             {
-                Context.Respond("No active autocommand found");
+                Context.Respond("Нет активных автокоманд");
                 return;
             }
             StringBuilder sb = new StringBuilder();
@@ -188,39 +188,39 @@ namespace Essentials.Commands
 
             if (Context.Player == null)
             {
-                Context.Respond("Current AutoCommands:");
+                Context.Respond("Текущие автокоманды:");
                 Context.Respond(sb.ToString());
 
             }
 
             else
             {
-                ModCommunication.SendMessageTo(new DialogMessage("Current AutoCommands",$"Found {commands.Count} Commands",sb.ToString()), Context.Player.SteamUserId);
+                ModCommunication.SendMessageTo(new DialogMessage("Текущие автокоманды",$"Найдено команд: {commands.Count}",sb.ToString()), Context.Player.SteamUserId);
             }
         }
 
-        [Command("set toolbar", "Makes your current toolbar the new default toolbar for new players.")]
+        [Command("set toolbar", "Делает вашу текущую панель инструментов панелью по умолчанию для новых игроков.")]
         [Permission(MyPromoteLevel.Admin)]
         public void SetToolbar()
         {
             if (Context.Player == null)
             {
-                Context.Respond("Command not available from console.");
+                Context.Respond("Команда недоступна из консоли.");
                 return;
             }
 
             var toolbar = MySession.Static.Toolbars.TryGetPlayerToolbar(new MyPlayer.PlayerId(Context.Player.SteamUserId));
             if (toolbar == null)
             {
-                Context.Respond("Couldn't find your toolbar :( Blame rexxar.");
+                Context.Respond("Не удалось найти вашу панель инструментов.");
                 return;
             }
 
             EssentialsPlugin.Instance.Config.DefaultToolbar = toolbar.GetObjectBuilder();
-            Context.Respond("Successfully set new default toolbar.");
+            Context.Respond("Новая панель инструментов по умолчанию установлена.");
         }
 
-        [Command("setrank", "Set the promote level of a player.")]
+        [Command("setrank", "Задаёт уровень прав игрока.")]
         [Permission(MyPromoteLevel.Admin)]
         public void SetRank(string playerNameOrId, string rank)
         {
@@ -229,21 +229,21 @@ namespace Essentials.Commands
 
             if (id == 0)
             {
-                Context.Respond($"Player '{playerNameOrId}' not found or ID is invalid.");
+                Context.Respond($"Игрок '{playerNameOrId}' не найден, или ID неверный.");
                 return;
             }
 
             if (!Enum.TryParse<MyPromoteLevel>(rank, true, out var promoteLevel) || promoteLevel > MyPromoteLevel.Admin)
             {
-                Context.Respond($"Invalid rank '{rank}'.");
+                Context.Respond($"Неверный уровень '{rank}'.");
                 return;
             }
 
             MySession.Static.SetUserPromoteLevel(id, promoteLevel);
-            Context.Respond($"Player '{playerNameOrId}' promoted to '{promoteLevel}'.");
+            Context.Respond($"Игроку '{playerNameOrId}' задан уровень '{promoteLevel}'.");
         }
 
-        [Command("reserve", "Add a player to the reserved slots list.")]
+        [Command("reserve", "Добавляет игрока в список зарезервированных слотов.")]
         [Permission(MyPromoteLevel.Admin)]
         public void ReserveSlot(string playerNameOrId)
         {
@@ -252,22 +252,22 @@ namespace Essentials.Commands
             
             if (id == 0)
             {
-                Context.Respond($"Player '{playerNameOrId}' not found or ID is invalid.");
+                Context.Respond($"Игрок '{playerNameOrId}' не найден, или ID неверный.");
                 return;
             }
 
             if (MySandboxGame.ConfigDedicated.Reserved.Contains(id))
             {
-                Context.Respond($"ID {id} is already reserved.");
+                Context.Respond($"ID {id} уже в списке зарезервированных.");
                 return;
             }
             
             MySandboxGame.ConfigDedicated.Reserved.Add(id);
             MySandboxGame.ConfigDedicated.Save();
-            Context.Respond($"ID {id} added to reserved slots.");
+            Context.Respond($"ID {id} добавлен в зарезервированные слоты.");
         }
 
-        [Command("unreserve", "Remove a player from the reserved slots list.")]
+        [Command("unreserve", "Убирает игрока из списка зарезервированных слотов.")]
         [Permission(MyPromoteLevel.Admin)]
         public void UnreserveSlot(string playerNameOrId)
         {
@@ -276,24 +276,24 @@ namespace Essentials.Commands
             
             if (id == 0)
             {
-                Context.Respond($"Player '{playerNameOrId}' not found or ID is invalid.");
+                Context.Respond($"Игрок '{playerNameOrId}' не найден, или ID неверный.");
                 return;
             }
             
             if (!MySandboxGame.ConfigDedicated.Reserved.Contains(id))
             {
-                Context.Respond($"ID {id} is already unreserved.");
+                Context.Respond($"ID {id} нет в списке зарезервированных.");
                 return;
             }
             
             MySandboxGame.ConfigDedicated.Reserved.Remove(id);
             MySandboxGame.ConfigDedicated.Save();
-            Context.Respond($"ID {id} removed from reserved slots.");
+            Context.Respond($"ID {id} убран из зарезервированных слотов.");
         }
 
         private IChatManagerServer ChatManager => EssentialsPlugin.Instance.Torch.CurrentSession.Managers.GetManager<IChatManagerServer>();
 
-        [Command("mute", "Mutes a user in global chat for the given number of minutes.")]
+        [Command("mute", "Запрещает игроку писать в чат и вводить команды на указанное число минут. Без минут или с 0 — без срока. Игрок указывается по нику или SteamID.")]
         public void MuteUser(string user, int timeout = 0)
         {
             if (!Utilities.TryGetPlayerByNameOrSteamId(user, out var steamId, out var name))
@@ -305,12 +305,12 @@ namespace Essentials.Commands
             var expiry = timeout > 0 ? DateTime.Now.AddMinutes(timeout) : (DateTime?)null;
 
             if (EssentialsPlugin.Instance.Mutes.Mute(steamId, expiry))
-                Context.Respond($"Muted user {name} ({steamId})");
+                Context.Respond($"Игрок {name} ({steamId}) замьючен");
             else
-                Context.Respond($"Updated the mute of user {name} ({steamId})");
+                Context.Respond($"Мут игрока {name} ({steamId}) обновлён");
         }
 
-        [Command("unmute", "Removes a chat mute from a user, if they have been muted.")]
+        [Command("unmute", "Снимает мут с игрока. Игрок указывается по нику или SteamID.")]
         public void UnmuteUser(string user)
         {
             if (!Utilities.TryGetPlayerByNameOrSteamId(user, out var steamId, out var name))
@@ -326,22 +326,22 @@ namespace Essentials.Commands
             }
 
             if (!EssentialsPlugin.Instance.Mutes.Unmute(steamId))
-                Context.Respond($"Failed to unmute user {name}. They are not muted.");
+                Context.Respond($"Не удалось снять мут: игрок {name} не замьючен.");
             else
-                Context.Respond($"Unmuted user {name} ({steamId})");
+                Context.Respond($"С игрока {name} ({steamId}) снят мут");
         }
 
         private void RespondUserNotFound(string user)
         {
-            Context.Respond(ulong.TryParse(user, out _) ? $"SteamID {user} не найден в мире" : $"Could not find user {user}");
+            Context.Respond(ulong.TryParse(user, out _) ? $"SteamID {user} не найден в мире" : $"Игрок {user} не найден");
         }
 
-        [Command("list mute", "Lists all muted users, an their timeout, if applciable.")]
+        [Command("list mute", "Показывает всех замьюченных игроков и оставшееся время мута.")]
         public void ListMute()
         {
             if (ChatManager.MutedUsers.Count == 0)
             {
-                Context.Respond("No muted users.");
+                Context.Respond("Нет замьюченных игроков.");
                 return;
             }
 
@@ -354,7 +354,7 @@ namespace Essentials.Commands
                     s = m.ToString();
                 var t = EssentialsPlugin.Instance.Mutes.GetExpiry(m);
 
-                sb.AppendLine($"{s}: {(t.HasValue ? (t.Value - DateTime.Now).ToString(@"d\.hh\:mm\:ss") : "inf")}");
+                sb.AppendLine($"{s}: {(t.HasValue ? (t.Value - DateTime.Now).ToString(@"d\.hh\:mm\:ss") : "без срока")}");
             }
 
             if (Context.SentBySelf)
@@ -362,39 +362,39 @@ namespace Essentials.Commands
                 Context.Respond(sb.ToString());
                 return;
             }
-            var ms = new DialogMessage("Muted Users", content: sb.ToString());
+            var ms = new DialogMessage("Замьюченные игроки", content: sb.ToString());
             ModCommunication.SendMessageTo(ms, Context.Player.SteamUserId);
         }
 
-        [Command("give", "Insert an item with a specific quanity into a players inventory")]
+        [Command("give", "Кладёт указанное количество предмета в инвентарь игрока")]
         [Permission(MyPromoteLevel.Admin)]
         public void give(string playerName, string itemType, string item, int quantity) {
             string type = "MyObjectBuilder_" + itemType;
             VRage.Game.MyDefinitionId.TryParse(type, item, out VRage.Game.MyDefinitionId defID);
 
             if (defID.ToString().Contains("null")) {
-                Context.Respond("Invalid item type");
+                Context.Respond("Неверный тип предмета");
                 return;
             }
 
             if (playerName != "*") {
                 var p = Utilities.GetPlayerByNameOrId(playerName);
                 if (p == null) {
-                    Context.Respond("Player not found");
+                    Context.Respond("Игрок не найден");
                     return;
                 }
                 Sandbox.Game.MyVisualScriptLogicProvider.AddToPlayersInventory(p.IdentityId, defID, quantity);
-                ModCommunication.SendMessageTo(new NotificationMessage($"You have been given {quantity} {item} {itemType}", 5000, "Blue"), p.SteamUserId);
+                ModCommunication.SendMessageTo(new NotificationMessage($"Вам выдано: {quantity} {item} {itemType}", 5000, "Blue"), p.SteamUserId);
             }
 
             else {
                 foreach (var p in MySession.Static.Players.GetOnlinePlayers()) {
                     var player = Utilities.GetPlayerByNameOrId(p.DisplayName);
                     Sandbox.Game.MyVisualScriptLogicProvider.AddToPlayersInventory(p.Identity.IdentityId, defID, quantity);
-                    ModCommunication.SendMessageTo(new NotificationMessage($"You have been given {quantity} {item} {itemType}", 5000, "Blue"), player.SteamUserId);
+                    ModCommunication.SendMessageTo(new NotificationMessage($"Вам выдано: {quantity} {item} {itemType}", 5000, "Blue"), player.SteamUserId);
                 }
             }
-            Context.Respond("Item(s) given!");
+            Context.Respond("Предметы выданы!");
         }
     }
 }

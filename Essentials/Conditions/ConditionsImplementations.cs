@@ -13,7 +13,7 @@ namespace Essentials.Commands
     [ConditionModule]
     public static class ConditionsImplementations
     {
-        [Condition("name", helpText: "Finds grids with a matching name. Accepts regex format.")]
+        [Condition("name", helpText: "Ищет гриды с подходящим именем. Можно использовать регулярное выражение.")]
         public static bool NameMatches(MyCubeGrid grid, string str)
         {
             if (string.IsNullOrEmpty(grid.DisplayName))
@@ -23,25 +23,25 @@ namespace Essentials.Commands
             return regex.IsMatch(grid.DisplayName);
         }
 
-        [Condition("blockslessthan", helpText: "Finds grids with less than the given number of blocks.")]
+        [Condition("blockslessthan", helpText: "Ищет гриды, в которых блоков меньше указанного числа.")]
         public static bool BlocksLessThan(MyCubeGrid grid, int count)
         {
             return grid.BlocksCount < count;
         }
 
-        [Condition("pcugreaterthan", helpText: "Finds grids with more than the given number of PCU.")]
+        [Condition("pcugreaterthan", helpText: "Ищет гриды, у которых PCU больше указанного числа.")]
         public static bool PCUGreaterThan(MyCubeGrid grid, int pcu)
         {
             return grid.BlocksPCU > pcu;
         }
 
-        [Condition("pculessthan", helpText: "Finds grids with less than the given number of PCU.")]
+        [Condition("pculessthan", helpText: "Ищет гриды, у которых PCU меньше указанного числа.")]
         public static bool PCULessThan(MyCubeGrid grid, int pcu)
         {
             return grid.BlocksPCU < pcu;
         }
 
-        [Condition("hasgridtype", helpText: "Finds grids with the specified grid type (large | small | ship | static).")]
+        [Condition("hasgridtype", helpText: "Ищет гриды указанного типа (large | small | ship | static).")]
         public static bool HasGridType(MyCubeGrid grid, string gridType) 
         {
             if (string.IsNullOrEmpty(gridType))
@@ -78,7 +78,7 @@ namespace Essentials.Commands
             return false;
         }
 
-        [Condition("hasownertype", helpText: "Finds grids with the specified owner type (npc | player | nobody).")]
+        [Condition("hasownertype", helpText: "Ищет гриды с указанным типом владельца (npc | player | nobody).")]
         public static bool HasOwnerType(MyCubeGrid grid, string ownerType)
         {
             if (string.IsNullOrEmpty(ownerType))
@@ -109,13 +109,13 @@ namespace Essentials.Commands
             return false;
         }
 
-        [Condition("blocksgreaterthan", helpText: "Finds grids with more than the given number of blocks.")]
+        [Condition("blocksgreaterthan", helpText: "Ищет гриды, в которых блоков больше указанного числа.")]
         public static bool BlocksGreaterThan(MyCubeGrid grid, int count)
         {
             return grid.BlocksCount > count;
         }
 
-        [Condition("haspower", "nopower", "Finds grids with, or without power.")]
+        [Condition("haspower", "nopower", "Ищет гриды с питанием или без него.")]
         public static bool HasPower(MyCubeGrid grid)
         {
             foreach (var b in grid.GetFatBlocks())
@@ -135,7 +135,7 @@ namespace Essentials.Commands
             return false;
         }
 
-        [Condition("insideplanet", helpText: "Finds grids that are trapped inside planets.")]
+        [Condition("insideplanet", helpText: "Ищет гриды, застрявшие внутри планет.")]
         public static bool InsidePlanet(MyCubeGrid grid)
         {
             var s = grid.PositionComp.WorldVolume;
@@ -159,7 +159,7 @@ namespace Essentials.Commands
             return false;
         }
 
-        [Condition("playerdistancelessthan", "playerdistancegreaterthan", "Finds grids that are further than the given distance from players.")]
+        [Condition("playerdistancelessthan", "playerdistancegreaterthan", "Ищет гриды дальше или ближе указанного расстояния от игроков.")]
         public static bool PlayerDistanceLessThan(MyCubeGrid grid, double dist)
         {
             dist *= dist;
@@ -171,7 +171,7 @@ namespace Essentials.Commands
             return false;
         }
 
-        [Condition("poweredgriddistancegreaterthan", "Finds grids that are farther than the given distance from other grids that are powered.")]
+        [Condition("poweredgriddistancegreaterthan", "Ищет гриды дальше указанного расстояния от других гридов с питанием.")]
         public static bool PoweredGridDistanceGreaterThan(MyCubeGrid grid, double dist)
         {
             // Returns 'true' if the count of matched grids from a list of all grids is zero for these conditions:
@@ -200,7 +200,7 @@ namespace Essentials.Commands
                 && state != VRage.MyResourceStateEnum.Disconnected;
         }
 
-        [Condition("centerdistancelessthan", "centerdistancegreaterthan", "Finds grids that are further than the given distance from center.")]
+        [Condition("centerdistancelessthan", "centerdistancegreaterthan", "Ищет гриды дальше или ближе указанного расстояния от центра.")]
         public static bool CenterDistanceLessThan(MyCubeGrid grid, double dist)
         {
             dist *= dist;
@@ -208,7 +208,7 @@ namespace Essentials.Commands
             return Vector3D.DistanceSquared(Vector3D.Zero, grid.PositionComp.GetPosition()) < dist;
         }
 
-        [Condition("ownedby", helpText: "Finds grids owned by the given player. Can specify player name, IdentityId, 'nobody', or 'pirates'.")]
+        [Condition("ownedby", helpText: "Ищет гриды указанного владельца. Можно указать ник, ID личности, 'nobody' или 'pirates'.")]
         public static bool OwnedBy(MyCubeGrid grid, string str)
         {
             long identityId;
@@ -257,31 +257,31 @@ namespace Essentials.Commands
         }
         
 
-        [Condition("hastype", "notype", "Finds grids containing blocks of the given type.")]
+        [Condition("hastype", "notype", "Ищет гриды с блоками указанного типа.")]
         public static bool BlockType(MyCubeGrid grid, string str)
         {
             return grid.HasBlockType(str);
         }
 
-        [Condition("hastype-fast", "notype-fast", "Finds grids containing blocks of the given type.")]
+        [Condition("hastype-fast", "notype-fast", "Ищет гриды с блоками указанного типа.")]
         public static bool BlockTypeFast(MyCubeGrid grid, string str)
         {
             return grid.HasBlockTypeFast(str);
         }
         
-        [Condition("hassubtype", "nosubtype", "Finds grids containing blocks of the given subtype.")]
+        [Condition("hassubtype", "nosubtype", "Ищет гриды с блоками указанного подтипа.")]
         public static bool BlockSubType(MyCubeGrid grid, string str)
         {
             return grid.HasBlockSubtype(str);
         }
         
-        [Condition("hassubtype-fast", "nosubtype-fast", "Finds grids containing blocks of the given subtype.")]
+        [Condition("hassubtype-fast", "nosubtype-fast", "Ищет гриды с блоками указанного подтипа.")]
         public static bool BlockSubTypeFast(MyCubeGrid grid, string str)
         {
             return grid.HasBlockSubtypeFast(str);
         }
 
-        [Condition("haspilot", "Finds grids with pilots")]
+        [Condition("haspilot", "Ищет гриды с пилотами")]
         public static bool Piloted(MyCubeGrid grid)
         {
             return grid.GetFatBlocks().OfType<MyShipController>().Any(b => b.Pilot != null);

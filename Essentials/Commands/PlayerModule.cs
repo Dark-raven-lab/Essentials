@@ -19,13 +19,13 @@ namespace Essentials
     {
         private EssentialsPlugin Plugin => (EssentialsPlugin)Context.Plugin;
 
-        [Command("say", "Say a message as the server.")]
+        [Command("say", "Отправляет сообщение от имени сервера.")]
         public void Say(string message)
         {
             Context.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsSelf(Context.RawArgs);
         }
 
-        [Command("tp", "Teleport one entity to another.")]
+        [Command("tp", "Перемещает одну сущность к другой.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void Teleport(string entityToMove, string destination)
         {
@@ -38,7 +38,7 @@ namespace Essentials
 
             if (destEntity == null)
             {
-                Context.Respond("Destination entity not found");
+                Context.Respond("Сущность назначения не найдена");
                 return;
             }
 
@@ -50,35 +50,35 @@ namespace Essentials
 
             if (targetEntity == null)
             {
-                Context.Respond("Target entity not found.");
+                Context.Respond("Целевая сущность не найдена.");
                 return;
             }
 
             var targetPos = MyEntities.FindFreePlace(destEntity.GetPosition(), (float)targetEntity.WorldAABB.Extents.Max());
             if (targetPos == null)
             {
-                Context.Respond("No free place to teleport.");
+                Context.Respond("Нет свободного места для перемещения.");
                 return;
             }
 
             targetEntity.SetPosition(targetPos.Value);
         }
 
-        [Command("tpto", "Teleport directly to an another entity.")]
+        [Command("tpto", "Перемещает к другой сущности.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void TeleportTo(string destination, string entityToMove = null)
         {
             Teleport(entityToMove, destination);
         }
 
-        [Command("tphere", "Teleport another entity directly to you.")]
+        [Command("tphere", "Перемещает другую сущность к вам.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void TeleportHere(string entityToMove, string destination = null) 
         {
             Teleport(entityToMove, destination);
         }
 
-        [Command("w", "Send a private message to another player.")]
+        [Command("w", "Отправляет личное сообщение другому игроку.")]
         [Permission(MyPromoteLevel.None)]
         public void Whisper(string playerName)
         {
@@ -95,14 +95,14 @@ namespace Essentials
 
             if (player == null)
             {
-                Context.Respond($"Player '{playerName}' not found.");
+                Context.Respond($"Игрок '{playerName}' не найден.");
                 return;
             }
 
             Context.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsOther(message, Context.Player?.DisplayName ?? "Server", MyFontEnum.Red, player.SteamUserId);
         }
 
-        [Command("kick", "Kick a player from the game.")]
+        [Command("kick", "Выкидывает игрока с сервера.")]
         [Permission(MyPromoteLevel.Moderator)]
         public void Kick(string playerName)
         {
@@ -110,15 +110,15 @@ namespace Essentials
             if (player != null)
             {
                 Context.Torch.CurrentSession?.Managers?.GetManager<IMultiplayerManagerServer>()?.KickPlayer(player.SteamUserId);
-                Context.Respond($"Player '{player.DisplayName}' kicked.");
+                Context.Respond($"Игрок '{player.DisplayName}' выкинут с сервера.");
             }
             else
             {
-                Context.Respond("Player not found.");
+                Context.Respond("Игрок не найден.");
             }
         }
 
-        [Command("ban", "Ban a player from the game.")]
+        [Command("ban", "Банит игрока на сервере.")]
         [Permission(MyPromoteLevel.Moderator)]
         public void Ban(string nameOrSteamId)
         {
@@ -131,7 +131,7 @@ namespace Essentials
                 if (id != 0 && (identity.DisplayName == nameOrSteamId || id == steamId))
                 {
                     man.BanPlayer(id);
-                    Context.Respond($"Player {identity.DisplayName} banned. ({id})");
+                    Context.Respond($"Игрок {identity.DisplayName} забанен. ({id})");
                     return;
                 }
             }
@@ -139,14 +139,14 @@ namespace Essentials
             if (isId)
             {
                 man.BanPlayer(steamId);
-                Context.Respond($"Steam ID {steamId} banned.");
+                Context.Respond($"SteamID {steamId} забанен.");
                 return;
             }
             
-            Context.Respond($"Player '{nameOrSteamId}' not found.");
+            Context.Respond($"Игрок '{nameOrSteamId}' не найден.");
         }
 
-        [Command("unban", "Unban a player from the game.")]
+        [Command("unban", "Снимает бан с игрока.")]
         [Permission(MyPromoteLevel.Moderator)]
         public void Unban(string nameOrSteamId)
         {
@@ -159,7 +159,7 @@ namespace Essentials
                 if (id != 0 && (identity.DisplayName == nameOrSteamId || id == steamId))
                 {
                     man.BanPlayer(id, false);
-                    Context.Respond($"Player {identity.DisplayName} unbanned. ({id})");
+                    Context.Respond($"С игрока {identity.DisplayName} снят бан. ({id})");
                     return;
                 }
             }
@@ -167,14 +167,14 @@ namespace Essentials
             if (isId)
             {
                 man.BanPlayer(steamId, false);
-                Context.Respond($"Steam ID {steamId} unbanned.");
+                Context.Respond($"С SteamID {steamId} снят бан.");
                 return;
             }
             
-            Context.Respond($"Player '{nameOrSteamId}' not found.");
+            Context.Respond($"Игрок '{nameOrSteamId}' не найден.");
         }
 
-        [Command("motd", "Show the server's Message of the Day.")]
+        [Command("motd", "Показывает сообщение дня сервера.")]
         [Permission(MyPromoteLevel.None)]
         public void Motd()
         {

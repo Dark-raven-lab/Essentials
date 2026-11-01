@@ -14,7 +14,7 @@ namespace Essentials.Commands
     [Category("blocks")]
     public class BlocksModule : CommandModule
     {
-        [Command("on type", "Turn on all blocks of the given type.")]
+        [Command("on type", "Включает все блоки указанного типа.")]
         public void OnType(string type)
         {
             var count = 0;
@@ -32,10 +32,10 @@ namespace Essentials.Commands
                 }
             }
 
-            Context.Respond($"Enabled {count} blocks of type {type}.");
+            Context.Respond($"Включено блоков типа {type}: {count}.");
         }
 
-        [Command("on subtype", "Turn on all blocks of the given subtype.")]
+        [Command("on subtype", "Включает все блоки указанного подтипа.")]
         public void OnSubtype(string subtype)
         {
             var count = 0;
@@ -53,10 +53,10 @@ namespace Essentials.Commands
                 }
             }
 
-            Context.Respond($"Enabled {count} blocks of subtype {subtype}.");
+            Context.Respond($"Включено блоков подтипа {subtype}: {count}.");
         }
 
-        [Command("off type", "Turn off all blocks of the given type.")]
+        [Command("off type", "Выключает все блоки указанного типа.")]
         public void OffType(string type)
         {
             var count = 0;
@@ -74,10 +74,10 @@ namespace Essentials.Commands
             }
 
 
-            Context.Respond($"Disabled {count} blocks of type {type}.");
+            Context.Respond($"Выключено блоков типа {type}: {count}.");
         }
 
-        [Command("remove subtype", "remove all blocks of the given subtype.")]
+        [Command("remove subtype", "Удаляет все блоки указанного подтипа.")]
         public void RemoveSubtype(string subtype)
         {
             var toRemove = new List<MySlimBlock>();
@@ -93,10 +93,10 @@ namespace Essentials.Commands
 
             foreach (var x in toRemove)
                 x.CubeGrid?.RemoveBlock(x);
-            Context.Respond($"Removed {toRemove.Count} blocks of subtype {subtype}.");
+            Context.Respond($"Удалено блоков подтипа {subtype}: {toRemove.Count}.");
         }
 
-        [Command("remove type", "remove all blocks of the given type.")]
+        [Command("remove type", "Удаляет все блоки указанного типа.")]
         public void RemoveType(string type)
         {
             var toRemove = new List<MySlimBlock>();
@@ -112,10 +112,10 @@ namespace Essentials.Commands
 
             foreach (var x in toRemove)
                 x.CubeGrid?.RemoveBlock(x);
-            Context.Respond($"Removed {toRemove.Count} blocks of type {type}.");
+            Context.Respond($"Удалено блоков типа {type}: {toRemove.Count}.");
         }
 
-        [Command("off subtype", "Turn off all blocks of the given subtype.")]
+        [Command("off subtype", "Выключает все блоки указанного подтипа.")]
         public void OffSubtype(string subtype)
         {
             var count = 0;
@@ -134,10 +134,10 @@ namespace Essentials.Commands
             }
 
 
-            Context.Respond($"Disabled {count} blocks of subtype {subtype}.");
+            Context.Respond($"Выключено блоков подтипа {subtype}: {count}.");
         }
 
-        [Command("on general", "Turn on all blocks of the specified category")]
+        [Command("on general", "Включает все блоки указанной категории")]
         public void OnGeneral(string category)
         {
             var count = 0;
@@ -160,17 +160,17 @@ namespace Essentials.Commands
             }
             else
             {
-                Context.Respond($"{category} is not a valid category. Use one of the following: " + string.Join(", ", Enum.GetValues(typeof(BlockCategory))));
+                Context.Respond($"Неверная категория {category}. Используйте одну из следующих: " + string.Join(", ", Enum.GetValues(typeof(BlockCategory))));
                 return;
             }
 
 
 
-            Context.Respond($"Enabled {count} {category} blocks.");
+            Context.Respond($"Включено блоков категории {category}: {count}.");
         }
 
 
-        [Command("off general", "Turn off all blocks of the specified category")]
+        [Command("off general", "Выключает все блоки указанной категории")]
         public void OffGeneral(string category)
         {
             var count = 0;
@@ -194,13 +194,13 @@ namespace Essentials.Commands
             }
             else
             {
-                Context.Respond($"{category} is not a valid category. Use one of the following: " + string.Join(", ", Enum.GetValues(typeof(BlockCategory))));
+                Context.Respond($"Неверная категория {category}. Используйте одну из следующих: " + string.Join(", ", Enum.GetValues(typeof(BlockCategory))));
                 return;
             }
 
 
 
-            Context.Respond($"Disabled {count} {category} blocks.");
+            Context.Respond($"Выключено блоков категории {category}: {count}.");
         }
 
 
