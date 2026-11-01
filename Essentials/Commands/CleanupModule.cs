@@ -1,5 +1,7 @@
 ﻿using NLog;
+using Essentials.Utils;
 using Sandbox.Game.Entities;
+using Sandbox.Game.World;
 using System;
 using System.Linq;
 using System.Text;
@@ -17,40 +19,52 @@ namespace Essentials.Commands
         [Command("scan", "Считает гриды, подходящие под указанные условия")]
         public void Scan()
         {
-            var count = ConditionsChecker.ScanConditions(Context, Context.Args).Count();
-            Context.Respond($"Найдено гридов по указанным условиям: {count}.");
+            if (!ConditionsChecker.TryScanConditions(Context, Context.Args, out var grids))
+                return;
+
+            Context.Respond($"Найдено гридов по указанным условиям: {grids.Count}.");
         }
 
         [Command("list", "Показывает список гридов, подходящих под указанные условия")]
         public void List()
         {
-            var grids = ConditionsChecker.ScanConditions(Context, Context.Args).OrderBy(g => g.DisplayName).ToList();
+            if (!ConditionsChecker.TryScanConditions(Context, Context.Args, out var grids))
+                return;
+
+            var lines = String.Join("\n", grids.OrderBy(g => g.DisplayName).Select((g, i) =>
+                $"{i + 1}. {g.DisplayName} (ID: {g.EntityId}, владелец: {GetOwnerName(g)}, блоков: {g.BlocksCount}, координаты: {FormatPosition(g)})"));
             if (Context.SentBySelf)
             {
-                Context.Respond(String.Join("\n", grids.Select((g, i) => $"{i + 1}. {grids[i].DisplayName} (блоков: {grids[i].BlocksCount})")));
+                Context.Respond(lines);
                 Context.Respond($"Найдено гридов по указанным условиям: {grids.Count}.");
             }
             else
             {
-                var m = new DialogMessage("Очистка", null, $"Найдено: {grids.Count}", String.Join("\n", grids.Select((g, i) => $"{i + 1}. {grids[i].DisplayName} (блоков: {grids[i].BlocksCount})")));
+                var m = new DialogMessage("Очистка", null, $"Найдено: {grids.Count}", lines);
                 ModCommunication.SendMessageTo(m, Context.Player.SteamUserId);
             }
         }
 
-        [Command("delete", "Удаляет гриды, подходящие под указанные условия")]
+        [Command("delete", "Удаляет гриды, подходящие под указанные условия. Без условий не запускается")]
         public void Delete()
         {
-            var count = 0;
-            foreach (var grid in ConditionsChecker.ScanConditions(Context, Context.Args))
+            if (Context.Args.Count == 0)
             {
-                Log.Info($"Deleting grid: {grid.EntityId}: {grid.DisplayName}");
-                EjectPilots(grid);
-                grid.Close();
-                count++;
+                Context.Respond("Удаление без условий запрещено: оно удалит все гриды без пилотов. Список условий: !cleanup help");
+                return;
             }
 
-            Context.Respond($"Удалено гридов по указанным условиям: {count}.");
-            Log.Info($"Cleanup deleted {count} grids matching conditions {string.Join(", ", Context.Args)}");
+            if (!ConditionsChecker.TryScanConditions(Context, Context.Args, out var grids))
+                return;
+
+            foreach (var grid in grids)
+            {
+                Log.Info($"Deleting grid: {grid.EntityId}: {grid.DisplayName}, owner: {GetOwnerName(grid)}, blocks: {grid.BlocksCount}, position: {FormatPosition(grid)}");
+                grid.Close();
+            }
+
+            Context.Respond($"Удалено гридов по указанным условиям: {grids.Count}.");
+            Log.Info($"Cleanup deleted {grids.Count} grids matching conditions {string.Join(", ", Context.Args)}");
         }
 
         [Command("delete floatingobjects", "Удаляет летающие предметы")]
@@ -83,18 +97,19 @@ namespace Essentials.Commands
                 Context.Respond(sb.ToString());
         }
 
-        /// <summary>
-        /// Removes pilots from grid before deleting,
-        /// so the character doesn't also get deleted and break everything
-        /// </summary>
-        /// <param name="grid"></param>
-        public void EjectPilots(MyCubeGrid grid)
+        private static string FormatPosition(MyCubeGrid grid)
         {
-            var b = grid.GetFatBlocks<MyCockpit>();
-            foreach (var c in b)
-            {
-                c.RemovePilot();
-            }
+            var p = grid.PositionComp.GetPosition();
+            return $"{p.X:F0}:{p.Y:F0}:{p.Z:F0}";
+        }
+
+        private static string GetOwnerName(MyCubeGrid grid)
+        {
+            var ownerId = Ownership.GetOwner(grid);
+            if (ownerId == 0)
+                return "-";
+
+            return MySession.Static.Players.TryGetIdentity(ownerId)?.DisplayName ?? ownerId.ToString();
         }
     }
 }

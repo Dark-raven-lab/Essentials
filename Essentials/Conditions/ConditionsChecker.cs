@@ -51,9 +51,13 @@ namespace Essentials.Commands
             return _conditionLookup;
         }
         
-        public static IEnumerable<MyCubeGrid> ScanConditions(CommandContext context, IReadOnlyList<string> args)
+        /// <summary>
+        /// Returns false after a single error reply if the conditions are wrong. No grids are scanned then.
+        /// </summary>
+        public static bool TryScanConditions(CommandContext context, IReadOnlyList<string> args, out List<MyCubeGrid> grids)
         {
-            var conditions = new List<Func<MyCubeGrid, bool?>>();
+            grids = null;
+            var conditions = new List<Func<MyCubeGrid, bool>>();
 
             for (var i = 0; i < args.Count; i++)
             {
@@ -72,7 +76,7 @@ namespace Essentials.Commands
                 if (parameter != null)
                 {
                     //parameter is the name of a command. Assume this command requires no parameters
-                    if (_conditionLookup.Any(c => parameter.Equals(c.Command, StringComparison.CurrentCultureIgnoreCase) || parameter.Equals(c.InvertCommand, StringComparison.CurrentCultureIgnoreCase)))
+                    if (_conditionLookup.Any(c => c.Matches(parameter)))
                     {
                         parameter = null;
                     }
@@ -81,28 +85,22 @@ namespace Essentials.Commands
                         i++;
                 }
 
-                bool found = false;
-
-                foreach (var condition in _conditionLookup)
-                {
-                    if (arg.Equals(condition.Command, StringComparison.CurrentCultureIgnoreCase))
-                    {
-                        conditions.Add(g => condition.Evaluate(g, parameter, false, context));
-                        found = true;
-                        break;
-                    }
-                    else if (arg.Equals(condition.InvertCommand, StringComparison.CurrentCultureIgnoreCase))
-                    {
-                        conditions.Add(g => condition.Evaluate(g, parameter, true, context));
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found)
+                var condition = _conditionLookup.FirstOrDefault(c => c.Matches(arg));
+                if (condition == null)
                 {
                     context.Respond($"Неизвестный аргумент '{arg}'");
-                    return new List<MyCubeGrid>();
+                    return false;
                 }
+
+                var invert = !arg.Equals(condition.Command, StringComparison.CurrentCultureIgnoreCase);
+                var bound = condition.Bind(parameter, invert, out var error);
+                if (bound == null)
+                {
+                    context.Respond(error);
+                    return false;
+                }
+
+                conditions.Add(bound);
             }
 
             //default scan to find grids without pilots
@@ -113,8 +111,6 @@ namespace Essentials.Commands
             var resultList = new List<MyCubeGrid>();
             Parallel.ForEach(MyCubeGridGroups.Static.Logical.Groups, (group) =>
             {
-                //if (group.Nodes.All(grid => conditions.TrueForAll(func => func(grid.NodeData))))
-                bool res = true;
                 foreach (var node in group.Nodes)
                 {
                     if (node.NodeData.Projector != null)
@@ -122,41 +118,19 @@ namespace Essentials.Commands
 
                     foreach (var c in conditions)
                     {
-                        bool? r = c.Invoke(node.NodeData);
-                        if (r == null)
-                        {
+                        if (!c(node.NodeData))
                             return;
-                        }
-
-                        if (r == true)
-                        {
-                            continue;
-                        }
-
-                        res = false;
-                        break;
-                    }
-
-                    if (!res)
-                    {
-                        break;
                     }
                 }
 
-                if (res)
+                lock (resultList)
                 {
-                    lock (resultList)
-                    {
-                        foreach (var grid in group.Nodes.Where(x => x.NodeData.Projector == null))
-                        {
-                            resultList.Add(grid.NodeData);
-                        }
-                    }
+                    resultList.AddRange(group.Nodes.Where(x => x.NodeData.Projector == null).Select(x => x.NodeData));
                 }
-                    
             });
 
-            return resultList;
+            grids = resultList;
+            return true;
         }
         
     }

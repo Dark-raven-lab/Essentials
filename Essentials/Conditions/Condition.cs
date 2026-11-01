@@ -32,35 +32,77 @@ namespace Essentials.Conditions
                 Parameter = p[1];
         }
 
-        public bool? Evaluate(MyCubeGrid grid, string arg, bool invert, CommandContext context)
+        public bool Matches(string name)
         {
-            bool result;
-            if (!string.IsNullOrEmpty(arg) && Parameter == null)
+            return name.Equals(Command, StringComparison.CurrentCultureIgnoreCase)
+                   || name.Equals(InvertCommand, StringComparison.CurrentCultureIgnoreCase);
+        }
+
+        /// <summary>
+        /// Checks and parses the argument once, before any grid is scanned.
+        /// Returns null and sets the error if the argument doesn't fit.
+        /// </summary>
+        public Func<MyCubeGrid, bool> Bind(string arg, bool invert, out string error)
+        {
+            error = null;
+            var hasArg = !string.IsNullOrEmpty(arg);
+            if (Parameter == null)
             {
-                context.Respond($"Условие не принимает аргумент. Продолжить нельзя!");
-                return null;
-            }
-            if (string.IsNullOrEmpty(arg) && Parameter != null && !Parameter.HasDefaultValue)
-            {
-                context.Respond($"Условию нужен аргумент {Parameter.ParameterType.Name}: {Parameter.Name}. Он не указан, продолжить нельзя!");
-                return null;
-            }
-            if (Parameter != null && !string.IsNullOrEmpty(arg))
-            {
-                if (!arg.TryConvert(Parameter.ParameterType, out object val))
+                if (hasArg)
                 {
-                    context.Respond($"Не удалось разобрать аргумент!");
+                    error = $"Условие '{Command}' не принимает аргумент '{arg}'.";
                     return null;
                 }
 
-                result = (bool)_method.Invoke(null, new[] { grid, val });
+                return grid => (bool)_method.Invoke(null, new object[] { grid }) != invert;
+            }
+
+            object val;
+            if (hasArg)
+            {
+                if (!TryParseArgument(arg, out val, out error))
+                    return null;
+            }
+            else if (Parameter.HasDefaultValue)
+            {
+                val = Parameter.DefaultValue;
             }
             else
             {
-                result = (bool)_method.Invoke(null, new object[] { grid });
+                error = $"Условию '{Command}' нужен аргумент {Parameter.Name}.";
+                return null;
             }
 
-            return result != invert;
+            return grid => (bool)_method.Invoke(null, new[] { grid, val }) != invert;
+        }
+
+        // Types built from a single string (Regex, OwnerFilter) validate themselves in the constructor.
+        private bool TryParseArgument(string arg, out object val, out string error)
+        {
+            error = null;
+            val = null;
+            try
+            {
+                var constructor = Parameter.ParameterType.GetConstructor(new[] { typeof(string) });
+                if (constructor != null)
+                {
+                    val = constructor.Invoke(new object[] { arg });
+                    return true;
+                }
+
+                // Torch's TryConvert throws on a bad value instead of returning false.
+                if (arg.TryConvert(Parameter.ParameterType, out val))
+                    return true;
+            }
+            catch (Exception e)
+            {
+                var reason = e is TargetInvocationException ? e.InnerException?.Message : e.Message;
+                error = $"Не удалось разобрать аргумент '{arg}' условия '{Command}': {reason}";
+                return false;
+            }
+
+            error = $"Не удалось разобрать аргумент '{arg}' условия '{Command}'.";
+            return false;
         }
     }
 }

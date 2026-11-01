@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Sandbox.ModAPI;
 using Vector3D = VRageMath.Vector3D;
 
 namespace Essentials.Commands
@@ -14,12 +13,11 @@ namespace Essentials.Commands
     public static class ConditionsImplementations
     {
         [Condition("name", helpText: "Ищет гриды с подходящим именем. Можно использовать регулярное выражение.")]
-        public static bool NameMatches(MyCubeGrid grid, string str)
+        public static bool NameMatches(MyCubeGrid grid, Regex regex)
         {
             if (string.IsNullOrEmpty(grid.DisplayName))
                 return false;
 
-            var regex = new Regex(str);
             return regex.IsMatch(grid.DisplayName);
         }
 
@@ -63,21 +61,6 @@ namespace Essentials.Commands
             return false;
         }
         
-        public static bool IsNPCTradeStation(MyCubeGrid grid)
-        {
-            if (grid == null)
-                return false;
-
-            if (grid.IsStatic && grid.GridSizeEnum == VRage.Game.MyCubeSize.Large)
-            {
-                var faction = MyAPIGateway.Session.Factions.TryGetPlayerFaction(grid.BigOwners.FirstOrDefault());
-                if (faction != null && faction.Tag == "NPC")
-                    return true;
-            }
-
-            return false;
-        }
-
         [Condition("hasownertype", helpText: "Ищет гриды с указанным типом владельца (npc | player | nobody).")]
         public static bool HasOwnerType(MyCubeGrid grid, string ownerType)
         {
@@ -165,13 +148,23 @@ namespace Essentials.Commands
             dist *= dist;
             foreach (var player in MySession.Static.Players.GetOnlinePlayers())
             {
-                if (Vector3D.DistanceSquared(player.GetPosition(), grid.PositionComp.GetPosition()) < dist)
+                if (Vector3D.DistanceSquared(player.GetPosition(), grid.PositionComp.GetPosition()) < dist && IsLivingHuman(player))
                     return true;
             }
             return false;
         }
 
-        [Condition("poweredgriddistancegreaterthan", "Ищет гриды дальше указанного расстояния от других гридов с питанием.")]
+        // GetOnlinePlayers includes bots, and GetPosition is zero for a player who controls nothing.
+        private static bool IsLivingHuman(MyPlayer player)
+        {
+            if (!player.IsRealPlayer || player.Controller?.ControlledEntity?.Entity == null)
+                return false;
+
+            var character = player.Identity?.Character;
+            return character != null && !character.IsDead;
+        }
+
+        [Condition("poweredgriddistancegreaterthan", helpText: "Ищет гриды дальше указанного расстояния от других гридов с питанием.")]
         public static bool PoweredGridDistanceGreaterThan(MyCubeGrid grid, double dist)
         {
             // Returns 'true' if the count of matched grids from a list of all grids is zero for these conditions:
@@ -209,53 +202,65 @@ namespace Essentials.Commands
         }
 
         [Condition("ownedby", helpText: "Ищет гриды указанного владельца. Можно указать ник, ID личности, 'nobody' или 'pirates'.")]
-        public static bool OwnedBy(MyCubeGrid grid, string str)
+        public static bool OwnedBy(MyCubeGrid grid, OwnerFilter owner)
         {
-            long identityId;
-
-            if (string.Compare(str, "nobody", StringComparison.InvariantCultureIgnoreCase) == 0)
-            {
-                return grid.BigOwners.Count == 0;
-            }
-
-            if (string.Compare(str, "npc", StringComparison.Ordinal) == 0)
-            {
-                return grid.BigOwners.Count > 0 &&
-                       MySession.Static.Factions.IsNpcFaction(grid.BigOwners.FirstOrDefault());
-            }
-            
-
-            if (string.Compare(str, "pirates", StringComparison.InvariantCultureIgnoreCase) == 0)
-            {
-                identityId = MyPirateAntennas.GetPiratesId();
-                var pirateFaction = MySession.Static.Factions.GetPlayerFaction(identityId);
-                if (pirateFaction != null && pirateFaction.Members.Count > 1)
-                {
-                    return grid.BigOwners.Count > 0 &&
-                           pirateFaction.Members.ContainsKey(grid.BigOwners.FirstOrDefault());
-                }
-
-            }
-            else
-            {
-                var player = Utilities.GetIdentityByNameOrIds(str);
-                if (player == null)
-                {
-                    if (long.TryParse(str, out long NPCId))
-                    {
-                        if (MySession.Static.Players.IdentityIsNpc(NPCId))
-                        {
-                            return grid.BigOwners.Contains(NPCId);
-                        }
-                    }
-                    return false;
-                }
-                identityId = player.IdentityId;
-            }
-
-            return grid.BigOwners.Contains(identityId);
+            return owner.Matches(grid);
         }
-        
+
+        /// <summary>
+        /// The owner is resolved once per scan: looking up an identity walks through all of them.
+        /// </summary>
+        public sealed class OwnerFilter
+        {
+            private readonly Func<MyCubeGrid, bool> _matches;
+
+            public OwnerFilter(string str)
+            {
+                _matches = Resolve(str);
+            }
+
+            public bool Matches(MyCubeGrid grid)
+            {
+                return _matches(grid);
+            }
+
+            private static Func<MyCubeGrid, bool> Resolve(string str)
+            {
+                long identityId;
+
+                if (string.Compare(str, "nobody", StringComparison.InvariantCultureIgnoreCase) == 0)
+                {
+                    return grid => grid.BigOwners.Count == 0;
+                }
+
+                if (string.Compare(str, "npc", StringComparison.Ordinal) == 0)
+                {
+                    return grid => grid.BigOwners.Count > 0 &&
+                                   MySession.Static.Factions.IsNpcFaction(grid.BigOwners.FirstOrDefault());
+                }
+
+                if (string.Compare(str, "pirates", StringComparison.InvariantCultureIgnoreCase) == 0)
+                {
+                    identityId = MyPirateAntennas.GetPiratesId();
+                    var pirateFaction = MySession.Static.Factions.GetPlayerFaction(identityId);
+                    if (pirateFaction != null && pirateFaction.Members.Count > 1)
+                    {
+                        return grid => grid.BigOwners.Count > 0 &&
+                                       pirateFaction.Members.ContainsKey(grid.BigOwners.FirstOrDefault());
+                    }
+                }
+                else
+                {
+                    var player = Utilities.GetIdentityByNameOrIds(str);
+                    if (player != null)
+                        identityId = player.IdentityId;
+                    else if (!long.TryParse(str, out identityId) || !MySession.Static.Players.IdentityIsNpc(identityId))
+                        return grid => false;
+                }
+
+                return grid => grid.BigOwners.Contains(identityId);
+            }
+        }
 
         [Condition("hastype", "notype", "Ищет гриды с блоками указанного типа.")]
         public static bool BlockType(MyCubeGrid grid, string str)
@@ -281,7 +286,7 @@ namespace Essentials.Commands
             return grid.HasBlockSubtypeFast(str);
         }
 
-        [Condition("haspilot", "Ищет гриды с пилотами")]
+        [Condition("haspilot", helpText: "Ищет гриды с пилотами.")]
         public static bool Piloted(MyCubeGrid grid)
         {
             return grid.GetFatBlocks().OfType<MyShipController>().Any(b => b.Pilot != null);
