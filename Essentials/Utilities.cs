@@ -90,12 +90,18 @@ namespace Essentials
 
         public static bool TryGetEntityByNameOrId(string nameOrId, out IMyEntity entity)
         {
+            return TryGetEntityByNameOrId(nameOrId, null, out entity);
+        }
+
+        /// <param name="nameFilter">Skips entities in the search by name, an ID finds what it finds.</param>
+        public static bool TryGetEntityByNameOrId(string nameOrId, Func<IMyEntity, bool> nameFilter, out IMyEntity entity)
+        {
             if (long.TryParse(nameOrId, out long id))
                 return MyAPIGateway.Entities.TryGetEntityById(id, out entity);
 
             foreach (var ent in MyEntities.GetEntities())
             {
-                if (ent.DisplayName == nameOrId)
+                if (ent.DisplayName == nameOrId && (nameFilter == null || nameFilter(ent)))
                 {
                     entity = ent;
                     return true;
