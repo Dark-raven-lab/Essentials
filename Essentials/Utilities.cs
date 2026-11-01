@@ -270,6 +270,13 @@ namespace Essentials
             return result;
         }
 
+        // GetPosition is the grid's pivot, which can be far from its blocks. Fractions are cut off, not rounded.
+        public static string FormatGridCenter(MyCubeGrid grid)
+        {
+            var center = grid.PositionComp.WorldAABB.Center;
+            return $"{(long)center.X}:{(long)center.Y}:{(long)center.Z}";
+        }
+
         public static List<MyPlayer> GetOnlinePlayers()
         {
             var result = new List<MyPlayer>(MySession.Static.Players.GetOnlinePlayers()

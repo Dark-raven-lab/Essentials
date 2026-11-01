@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Essentials.Conditions;
 using Sandbox.Game.Entities;
+using Sandbox.Game.World;
 using Torch.Commands;
 
 namespace Essentials.Commands
@@ -53,10 +54,13 @@ namespace Essentials.Commands
         
         /// <summary>
         /// Returns false after a single error reply if the conditions are wrong. No grids are scanned then.
+        /// A group that matches but holds an economy station stays out of the grids, whatever the conditions say.
+        /// Such stations come back in excludedStations with the size of their group.
         /// </summary>
-        public static bool TryScanConditions(CommandContext context, IReadOnlyList<string> args, out List<MyCubeGrid> grids)
+        public static bool TryScanConditions(CommandContext context, IReadOnlyList<string> args, out List<MyCubeGrid> grids, out List<(MyCubeGrid Station, int GroupSize)> excludedStations)
         {
             grids = null;
+            excludedStations = null;
             var conditions = new List<Func<MyCubeGrid, bool>>();
 
             for (var i = 0; i < args.Count; i++)
@@ -108,7 +112,7 @@ namespace Essentials.Commands
                 conditions.Add(g => !ConditionsImplementations.Piloted(g));
 
 
-            var resultList = new List<MyCubeGrid>();
+            var matchedGroups = new List<List<MyCubeGrid>>();
             Parallel.ForEach(MyCubeGridGroups.Static.Logical.Groups, (group) =>
             {
                 foreach (var node in group.Nodes)
@@ -123,13 +127,24 @@ namespace Essentials.Commands
                     }
                 }
 
-                lock (resultList)
+                var groupGrids = group.Nodes.Where(x => x.NodeData.Projector == null).Select(x => x.NodeData).ToList();
+                lock (matchedGroups)
                 {
-                    resultList.AddRange(group.Nodes.Where(x => x.NodeData.Projector == null).Select(x => x.NodeData));
+                    matchedGroups.Add(groupGrids);
                 }
             });
 
-            grids = resultList;
+            grids = new List<MyCubeGrid>();
+            excludedStations = new List<(MyCubeGrid Station, int GroupSize)>();
+            foreach (var groupGrids in matchedGroups)
+            {
+                var stations = groupGrids.Where(g => MySession.Static.Factions.GetStationByGridId(g.EntityId) != null).ToList();
+                if (stations.Count == 0)
+                    grids.AddRange(groupGrids);
+                else
+                    excludedStations.AddRange(stations.Select(s => (s, groupGrids.Count)));
+            }
+
             return true;
         }
         

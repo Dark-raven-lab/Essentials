@@ -19,7 +19,7 @@ namespace Essentials.Commands
         [Command("scan", "Считает гриды, подходящие под указанные условия")]
         public void Scan()
         {
-            if (!ConditionsChecker.TryScanConditions(Context, Context.Args, out var grids))
+            if (!ConditionsChecker.TryScanConditions(Context, Context.Args, out var grids, out _))
                 return;
 
             Context.Respond($"Найдено гридов по указанным условиям: {grids.Count}.");
@@ -28,11 +28,11 @@ namespace Essentials.Commands
         [Command("list", "Показывает список гридов, подходящих под указанные условия")]
         public void List()
         {
-            if (!ConditionsChecker.TryScanConditions(Context, Context.Args, out var grids))
+            if (!ConditionsChecker.TryScanConditions(Context, Context.Args, out var grids, out _))
                 return;
 
             var lines = String.Join("\n", grids.OrderBy(g => g.DisplayName).Select((g, i) =>
-                $"{i + 1}. {g.DisplayName} (ID: {g.EntityId}, владелец: {GetOwnerName(g)}, блоков: {g.BlocksCount}, координаты: {FormatPosition(g)})"));
+                $"{i + 1}. {g.DisplayName} (ID: {g.EntityId}, владелец: {GetOwnerName(g)}, блоков: {g.BlocksCount}, координаты: {Utilities.FormatGridCenter(g)})"));
             if (Context.SentBySelf)
             {
                 Context.Respond(lines);
@@ -54,12 +54,15 @@ namespace Essentials.Commands
                 return;
             }
 
-            if (!ConditionsChecker.TryScanConditions(Context, Context.Args, out var grids))
+            if (!ConditionsChecker.TryScanConditions(Context, Context.Args, out var grids, out var excludedStations))
                 return;
+
+            foreach (var (station, groupSize) in excludedStations)
+                Log.Info($"Excluded from deletion as a trade station: {station.EntityId}: {station.DisplayName}, owner: {GetOwnerName(station)}, position: {Utilities.FormatGridCenter(station)}, grids in group: {groupSize}");
 
             foreach (var grid in grids)
             {
-                Log.Info($"Deleting grid: {grid.EntityId}: {grid.DisplayName}, owner: {GetOwnerName(grid)}, blocks: {grid.BlocksCount}, position: {FormatPosition(grid)}");
+                Log.Info($"Deleting grid: {grid.EntityId}: {grid.DisplayName}, owner: {GetOwnerName(grid)}, blocks: {grid.BlocksCount}, position: {Utilities.FormatGridCenter(grid)}");
                 grid.Close();
             }
 
@@ -95,12 +98,6 @@ namespace Essentials.Commands
                 ModCommunication.SendMessageTo(new DialogMessage("Справка по очистке", null, sb.ToString()), Context.Player.SteamUserId);
             else
                 Context.Respond(sb.ToString());
-        }
-
-        private static string FormatPosition(MyCubeGrid grid)
-        {
-            var p = grid.PositionComp.GetPosition();
-            return $"{p.X:F0}:{p.Y:F0}:{p.Z:F0}";
         }
 
         private static string GetOwnerName(MyCubeGrid grid)

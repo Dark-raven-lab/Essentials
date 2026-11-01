@@ -133,11 +133,12 @@ namespace Essentials
             if (entity is MyCubeGrid grid)
             {
                 var grids = Utilities.GetConnectedGrids(grid, GridLinkTypeEnum.Mechanical);
+                var center = Utilities.FormatGridCenter(grid);
                 foreach (var connected in grids)
                     connected.Close();
 
                 Context.Respond($"Грид '{grid.DisplayName}' удалён, всего гридов: {grids.Count}.");
-                Log.Info($"{Admin} deleted grid {grid.DisplayName} ({grid.EntityId}), grids in total: {grids.Count}");
+                Log.Info($"{Admin} deleted grid {grid.DisplayName} ({grid.EntityId}), position: {center}, grids in total: {grids.Count}");
             }
             else if (entity is MyFloatingObject)
             {
