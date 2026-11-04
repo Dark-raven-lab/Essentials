@@ -36,11 +36,13 @@ namespace Essentials.Commands {
                 Context.Respond("Дома на этом сервере отключены!");
                 return;
             }
-            var Account = PlayerAccounts.GetAccount(Context.Player.SteamUserId);
-            var Rank = RanksAndPermissionsModule.GetRankData(Account.Rank);
+            if (!TryGetAccount("Ошибка загрузки данных. Дом не установлен", out var Account, out var Rank))
+                return;
 
-            if (Rank == null || Account == null) {
-                Context.Respond("Ошибка загрузки данных. Дом не установлен");
+            if (Account.Homes.ContainsKey(homeName)) {
+                Account.Homes[homeName] = Context.Player.GetPosition();
+                PlayerAccounts.SaveAccountData();
+                Context.Respond("Дом перенесён на ваше текущее место!");
                 return;
             }
 
@@ -50,7 +52,7 @@ namespace Essentials.Commands {
             }
 
             Account.Homes.Add(homeName, Context.Player.GetPosition());
-            PlayerAccounts.UpdatePlayerAccount(Account);
+            PlayerAccounts.SaveAccountData();
             Context.Respond("Дом добавлен!");
         }
 
@@ -61,18 +63,12 @@ namespace Essentials.Commands {
                 Context.Respond("Дома на этом сервере отключены!");
                 return;
             }
-            var Account = PlayerAccounts.GetAccount(Context.Player.SteamUserId);
-            var Rank = RanksAndPermissionsModule.GetRankData(Account.Rank);
-
-            if (Rank == null || Account == null) {
-                Context.Respond("Ошибка загрузки данных. Дом не удалён!");
+            if (!TryGetAccount("Ошибка загрузки данных. Дом не удалён!", out var Account, out _))
                 return;
-            }
 
-            if (Account.Homes.ContainsKey(homeName)) {
-                Account.Homes.Remove(homeName);
+            if (Account.Homes.Remove(homeName)) {
+                PlayerAccounts.SaveAccountData();
                 Context.Respond("Дом удалён!");
-                PlayerAccounts.UpdatePlayerAccount(Account);
                 return;
             }
 
@@ -86,13 +82,8 @@ namespace Essentials.Commands {
                 Context.Respond("Дома на этом сервере отключены!");
                 return;
             }
-            var Account = PlayerAccounts.GetAccount(Context.Player.SteamUserId);
-            var Rank = RanksAndPermissionsModule.GetRankData(Account.Rank);
-
-            if (Rank == null || Account == null) {
-                Context.Respond("Ошибка загрузки данных. Дом не удалён!");
+            if (!TryGetAccount("Ошибка загрузки данных.", out var Account, out _))
                 return;
-            }
 
             if (Account.Homes.Count == 0) {
                 Context.Respond("У вас нет домов!");
@@ -116,30 +107,44 @@ namespace Essentials.Commands {
                 Context.Respond("Дома на этом сервере отключены!");
                 return;
             }
-            var Account = PlayerAccounts.GetAccount(Context.Player.SteamUserId);
-            var Rank = RanksAndPermissionsModule.GetRankData(Account.Rank);
+            if (!TryGetAccount("Ошибка загрузки данных.", out var Account, out _))
+                return;
 
-            if (Rank == null || Account == null) {
-                Context.Respond("Ошибка загрузки данных.");
+            if (!Account.Homes.TryGetValue(homeName, out var targetPos)) {
+                Context.Respond("Такого дома не существует!");
                 return;
             }
 
-            Vector3D targetPos = Account.Homes[homeName];
+            var character = Context.Player.Character;
+            if (character == null || character.IsDead) {
+                Context.Respond("Сначала возродитесь.");
+                return;
+            }
 
-            var targetEntity = Context.Player?.Controller.ControlledEntity.Entity;
-            if (Context.Player?.Controller.ControlledEntity is MyCockpit controller) {
+            if (Context.Player.Controller?.ControlledEntity?.Entity != character) {
                 Context.Respond("Нельзя использовать !home, управляя гридом");
                 return;
             }
 
-            var player = MySession.Static.Players.GetOnlinePlayers().Where(i => i.Identity.IdentityId == Context.Player.Identity.IdentityId).First();
-
-            targetEntity.SetPosition(targetPos);
-
-            for (int i = 0; i != 5000; i++) {
-                Context.Player.Character.Physics.SetSpeeds(Vector3.Zero, Vector3.Zero);
-            }
+            character.SetPosition(targetPos);
+            character.Physics?.SetSpeeds(Vector3.Zero, Vector3.Zero);
             Context.Respond($"Вы перемещены в '{homeName}'");
+        }
+
+        private bool TryGetAccount(string error, out PlayerAccountModule.PlayerAccountData account, out RanksAndPermissionsModule.RankData rank) {
+            account = null;
+            rank = null;
+            if (Context.Player == null) {
+                Context.Respond("Команда доступна только игрокам.");
+                return false;
+            }
+            account = PlayerAccounts.GetAccount(Context.Player.SteamUserId);
+            rank = account == null ? null : RanksAndPermissionsModule.GetRankData(account.Rank);
+            if (rank == null) {
+                Context.Respond(error);
+                return false;
+            }
+            return true;
         }
     }
 }

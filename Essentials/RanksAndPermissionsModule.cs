@@ -282,15 +282,8 @@ namespace Essentials {
             ulong steamID = player.SteamId;
             Log.Info($"Binding ranks to {player.Name}'s session (Expires when server restarts)");
             RankData MainRank = GetRankData(PlayerAccountModule.GetRank(steamID));
-            if (!PlayersInheritedRanksStore.ContainsKey(steamID)) {
-                List<RankData> ListRanks = new List<RankData>();
-                PlayersInheritedRanksStore.Add(steamID, ListRanks);
-                foreach (var InheritedRank in MainRank.Inherits) {
-                    RankData rankData = GetRankData(InheritedRank);
-                    PlayersInheritedRanksStore[steamID].Add(rankData);
-                    GetInheritedRanks(rankData, steamID);
-                }
-            }
+            if (!PlayersInheritedRanksStore.ContainsKey(steamID))
+                BuildInheritedRanks(steamID);
             if (EssentialsPlugin.Instance.Config.OverrideVanillaPerms) {
                 MySession.Static.SetUserPromoteLevel(steamID, ParseMyPromoteLevel(MainRank.KeenLevelRank));
             }
@@ -302,44 +295,36 @@ namespace Essentials {
             Log.Info($"The following ranks have been assiged to {player.Name}: {Ranks}");
         }
 
-        public void UpdateRegisteredPlayersRanks(string newName) {
-            foreach (var player in PlayerAccountModule.PlayersAccounts) {
-                player.Rank = newName;
-                PlayerAccountModule.UpdatePlayerAccount(player);
-                //Log.Info($"Binding ranks to {player.}'s session (Expires when server restarts)");
-                RankData MainRank = GetRankData(PlayerAccountModule.GetRank(player.SteamID));
-                if (!PlayersInheritedRanksStore.ContainsKey(player.SteamID)) {
-                    List<RankData> ListRanks = new List<RankData>();
-                    PlayersInheritedRanksStore.Add(player.SteamID, ListRanks);
-                    foreach (var InheritedRank in MainRank.Inherits) {
-                        RankData rankData = GetRankData(InheritedRank);
-                        PlayersInheritedRanksStore[player.SteamID].Add(rankData);
-                        GetInheritedRanks(rankData, player.SteamID);
-                    }
-                }
-                //Only Re-apply users rank if perm override is enabled.
-                if (EssentialsPlugin.Instance.Config.OverrideVanillaPerms) {
-                    MySession.Static.SetUserPromoteLevel(player.SteamID, ParseMyPromoteLevel(MainRank.KeenLevelRank));
-                }
+        private void BuildInheritedRanks(ulong steamID) {
+            PlayersInheritedRanksStore[steamID] = new List<RankData>();
+            GetInheritedRanks(GetRankData(PlayerAccountModule.GetRank(steamID)), steamID);
+        }
 
-                string Ranks = ($"{MainRank.RankName},");
-                foreach (RankData inherited in PlayersInheritedRanksStore[player.SteamID]) {
-                    Ranks += ($"{inherited.RankName},");
-                }
-                Ranks = Ranks.TrimEnd(',');
-                //Log.Info($"The following ranks have been assiged to {player.Name}: {Ranks}");
-            }
+        //the store is built once per session on join, so rank changes made with commands must rebuild it for players already online
+        public void RebuildInheritedRanks(ulong steamID) {
+            if (PlayersInheritedRanksStore.ContainsKey(steamID))
+                BuildInheritedRanks(steamID);
+        }
+
+        public void RebuildAllInheritedRanks() {
+            foreach (var steamID in PlayersInheritedRanksStore.Keys.ToList())
+                BuildInheritedRanks(steamID);
         }
 
         public void GetInheritedRanks(RankData toplevel, ulong steamID) {
-            if (toplevel != null) {
-                foreach (var rank in toplevel.Inherits) {
-                    PlayersInheritedRanksStore[steamID].Add(GetRankData(rank));
-                    GetInheritedRanks(GetRankData(rank), steamID);
-                }
-            } else {
+            if (toplevel == null) {
                 Log.Warn("GetInheritedRanks was passed a null RankData Object!");
+                return;
             }
-        } 
+            var list = PlayersInheritedRanksStore[steamID];
+            foreach (var name in toplevel.Inherits) {
+                var rank = GetRankData(name);
+                //ranks that inherit each other in a loop would otherwise recurse until the stack overflows
+                if (rank == null || list.Contains(rank))
+                    continue;
+                list.Add(rank);
+                GetInheritedRanks(rank, steamID);
+            }
+        }
     }
 }
