@@ -29,7 +29,7 @@ namespace Essentials.Commands {
         RanksAndPermissionsModule RanksAndPermissionsModule = new RanksAndPermissionsModule();
         PlayerAccountModule PlayerAccounts = new PlayerAccountModule();
 
-        [Command("add")]
+        [Command("add", "Сохраняет ваше текущее место как дом с указанным именем.")]
         [Permission(MyPromoteLevel.None)]
         public void addHome(string homeName) {
             if (!EssentialsPlugin.Instance.Config.EnableHomes) {
@@ -54,7 +54,7 @@ namespace Essentials.Commands {
             Context.Respond("Дом добавлен!");
         }
 
-        [Command("del")]
+        [Command("del", "Удаляет ваш дом с указанным именем.")]
         [Permission(MyPromoteLevel.None)]
         public void delHome(string homeName) {
             if (!EssentialsPlugin.Instance.Config.EnableHomes) {
@@ -79,7 +79,7 @@ namespace Essentials.Commands {
             Context.Respond("Такого дома не существует!");
         }
 
-        [Command("list")]
+        [Command("list", "Показывает ваши дома.")]
         [Permission(MyPromoteLevel.None)]
         public void ListHomes() {
             if (!EssentialsPlugin.Instance.Config.EnableHomes) {
@@ -109,7 +109,7 @@ namespace Essentials.Commands {
             Context.Respond(sb.ToString());
         }
 
-        [Command("goto")]
+        [Command("goto", "Перемещает вас к дому с указанным именем. Не работает из кокпита.")]
         [Permission(MyPromoteLevel.None)]
         public void GotoHome(string homeName) {
             if (!EssentialsPlugin.Instance.Config.EnableHomes) {

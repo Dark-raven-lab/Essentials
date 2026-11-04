@@ -148,7 +148,7 @@ namespace Essentials.Commands
             Context.Respond($"Баланс игрока {p.DisplayName}, кредитов: {balance:#,##0}");
         }
 
-        [Command("pay")]
+        [Command("pay", "Переводит кредиты со своего счёта игроку в сети.")]
         [Permission(MyPromoteLevel.None)]
         public void EcoPay(string Player, long amount) {
             if (amount <= 0) {

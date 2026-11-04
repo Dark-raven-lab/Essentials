@@ -26,7 +26,7 @@ namespace Essentials.Commands {
         public RanksAndPermissionsModule RanksAndPermissions = new RanksAndPermissionsModule();
 
 
-        [Command("createrank")]
+        [Command("createrank", "Создаёт ранг.")]
         [Permission(MyPromoteLevel.Admin)]
         public void CreateRank(string name) {
             if (!RanksAndPermissions.GenerateRank(name)) {
@@ -36,7 +36,7 @@ namespace Essentials.Commands {
             Context.Respond("Ранг создан!");
         }
 
-        [Command("delrank")]
+        [Command("delrank", "Удаляет ранг.")]
         [Permission(MyPromoteLevel.Admin)]
         public void DeleteRank(string name) {
             RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(name);
@@ -49,7 +49,7 @@ namespace Essentials.Commands {
 
         }
 
-        [Command("setmaxhomes")]
+        [Command("setmaxhomes", "Задаёт, сколько домов могут иметь игроки ранга.")]
         [Permission(MyPromoteLevel.Admin)]
         public void SetMaxHomes(string rankName, int value) {
             RanksAndPermissionsModule.RankData Rank = RanksAndPermissions.GetRankData(rankName);
@@ -62,7 +62,7 @@ namespace Essentials.Commands {
             Context.Respond($"Игроки с рангом '{Rank.RankName}' теперь могут установить домов: {value}");
         }
 
-        [Command("reservedslot")]
+        [Command("reservedslot", "Включает (true) или выключает (false) резервный слот для ранга.")]
         [Permission(MyPromoteLevel.Admin)]
         public void SetReservedSlot(string rankName, string boolVal) {
             if (boolVal != "true" || boolVal != "false") {
@@ -78,7 +78,7 @@ namespace Essentials.Commands {
 
         }
 
-        [Command("renamerank")]
+        [Command("renamerank", "Переименовывает ранг, в том числе у игроков.")]
         [Permission(MyPromoteLevel.Admin)]
         public void RenameRank(string oldName, string newName) {
             RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(oldName);
@@ -91,7 +91,7 @@ namespace Essentials.Commands {
             RanksAndPermissions.UpdateRegisteredPlayersRanks(newName);
         }
 
-        [Command("setdefaultrank")]
+        [Command("setdefaultrank", "Задаёт ранг, который получают новые игроки.")]
         [Permission(MyPromoteLevel.Admin)]
         public void SetDefaultRank(string name) {
             RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(name);
@@ -105,7 +105,7 @@ namespace Essentials.Commands {
             Log.Info($"Ранг по умолчанию: '{name}'!");
         }
 
-        [Command("setrank")]
+        [Command("setrank", "Задаёт игроку ранг, а с ним уровень прав и резервный слот.")]
         [Permission(MyPromoteLevel.Admin)]
         public void SetRank(string playerNameOrID, string rankName) {
             RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(rankName);
@@ -152,7 +152,7 @@ namespace Essentials.Commands {
             AccModule.UpdatePlayerAccount(data);
         }
 
-        [Command("populate")]
+        [Command("populate", "Отключена.")]
         [Permission(MyPromoteLevel.Admin)]
         public void Populate(string rank, string level) {
 
@@ -192,7 +192,7 @@ namespace Essentials.Commands {
             }
         }
 
-        [Command("addinheritance")]
+        [Command("addinheritance", "Даёт рангу все права другого ранга.")]
         [Permission(MyPromoteLevel.Admin)]
         public void AddInheritance(string rankName, string inheritanceName) {
             RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(rankName);
@@ -210,7 +210,7 @@ namespace Essentials.Commands {
             Context.Respond("Ранга, которому вы добавляете наследование, не существует");
         }
 
-        [Command("delinheritance")]
+        [Command("delinheritance", "Убирает у ранга права, полученные от другого ранга.")]
         [Permission(MyPromoteLevel.Admin)]
         public void DelInheritance(string rankName, string inheritanceName) {
             RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(rankName);
@@ -228,7 +228,7 @@ namespace Essentials.Commands {
 
         }
 
-        [Command("addperm")]
+        [Command("addperm", "Разрешает рангу команду. С минусом перед командой снимает разрешение.")]
         [Permission(MyPromoteLevel.Admin)]
         public void AddPermission(string rankName, string command) {
             RanksAndPermissionsModule.RankData data = new RanksAndPermissionsModule.RankData();
@@ -266,7 +266,7 @@ namespace Essentials.Commands {
             Context.Respond($"Рангу '{data.RankName}' уже разрешена команда '{command}'");
         }
 
-        [Command("delperm")]
+        [Command("delperm", "Запрещает рангу команду. С минусом перед командой снимает запрет.")]
         [Permission(MyPromoteLevel.Admin)]
         public void RemovePermission(string rankName, string command) {
             RanksAndPermissionsModule.RankData data = new RanksAndPermissionsModule.RankData();
@@ -305,7 +305,7 @@ namespace Essentials.Commands {
         }
 
 
-        [Command("addplayerperm")]
+        [Command("addplayerperm", "Разрешает игроку команду. С минусом перед командой снимает разрешение.")]
         [Permission(MyPromoteLevel.Admin)]
         public void AddPlayerPermission(string playerName, string command) {
             PlayerAccountModule.PlayerAccountData data = new PlayerAccountModule.PlayerAccountData();
@@ -343,7 +343,7 @@ namespace Essentials.Commands {
             Context.Respond($"Игроку '{data.Player}' уже разрешена команда '{command}'");
         }
 
-        [Command("delplayerperm")]
+        [Command("delplayerperm", "Запрещает игроку команду. С минусом перед командой снимает запрет.")]
         [Permission(MyPromoteLevel.Admin)]
         public void RemovePlayerPermission(string playerName, string command) {
             PlayerAccountModule.PlayerAccountData data = new PlayerAccountModule.PlayerAccountData();
@@ -381,7 +381,7 @@ namespace Essentials.Commands {
             Context.Respond($"Игроку {data.Player} уже запрещена команда '{command}'!");
         }
 
-        [Command("listranks")]
+        [Command("listranks", "Показывает все ранги.")]
         [Permission(MyPromoteLevel.None)]
         public void ListRanks(string listRankName) {
             bool found = false;
