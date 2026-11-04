@@ -30,13 +30,9 @@ namespace Essentials
             Context.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsSelf(Context.RawArgs);
         }
 
-        private const string TeleportHelp = "\nСущность указывается по нику игрока, имени грида или ID. Имена с пробелами берите в кавычки."
-            + "\nГрид перемещается вместе со всем, что с ним физически связано, а сидящий игрок вместе со своим кораблём."
-            + "\nСтатичные и закреплённые гриды, планеты и астероиды перемещать нельзя. К ним перемещать можно."
-            + "\nМесто выбирается снаружи цели со стороны перемещаемого объекта, а на планете на поверхности. Если там занято, точка рядом выбирается случайно."
-            + "\nСкорость после перемещения обнуляется.";
+        private const string TeleportHelp = "\nНик, имя грида или ID; имена с пробелами в кавычках. Статичные гриды, планеты и астероиды не перемещаются.";
 
-        [Command("tp", "Перемещает грид или персонажа к другой сущности.", "Перемещает грид или персонажа к другой сущности." + TeleportHelp + "\nПример: !tp Иван \"Моя база\"")]
+        [Command("tp", "Перемещает грид или персонажа к цели.", "!tp <кого> <куда>" + TeleportHelp + "\nПример: !tp Иван \"Моя база\"")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void Teleport(string entityToMove, string destination)
         {
@@ -144,14 +140,14 @@ namespace Essentials
             return true;
         }
 
-        [Command("tpto", "Перемещает вас или указанный грид либо персонажа к другой сущности.", "Перемещает вас к указанной сущности. Если вы сидите в кокпите, перемещается весь корабль. Вторым аргументом можно указать, кого переместить вместо вас." + TeleportHelp + "\nПримеры: !tpto Иван или !tpto \"Моя база\" Пётр")]
+        [Command("tpto", "Перемещает вас к цели.", "!tpto <куда> [кого]. Из кокпита перемещается весь корабль." + TeleportHelp + "\nПример: !tpto \"Моя база\"")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void TeleportTo(string destination, string entityToMove = null)
         {
             Teleport(entityToMove, destination);
         }
 
-        [Command("tphere", "Перемещает грид или персонажа к вам или к указанной сущности.", "Перемещает указанный грид или персонажа к вам. Вторым аргументом можно указать другую цель." + TeleportHelp + "\nПримеры: !tphere Иван или !tphere Иван \"Моя база\"")]
+        [Command("tphere", "Перемещает грид или персонажа к вам.", "!tphere <кого> [куда]" + TeleportHelp + "\nПример: !tphere Иван")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void TeleportHere(string entityToMove, string destination = null) 
         {
