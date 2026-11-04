@@ -227,20 +227,21 @@ namespace Essentials.Commands
             ulong.TryParse(playerNameOrId, out var id);
             id = Utilities.GetPlayerByNameOrId(playerNameOrId)?.SteamUserId ?? id;
 
-            if (id == 0)
+            //a SteamID nobody has played with would get the level silently, so only known players are accepted
+            if (id == 0 || MySession.Static.Players.TryGetIdentityId(id) == 0)
             {
                 Context.Respond($"Игрок '{playerNameOrId}' не найден, или ID неверный.");
                 return;
             }
 
-            if (!Enum.TryParse<MyPromoteLevel>(rank, true, out var promoteLevel) || promoteLevel > MyPromoteLevel.Admin)
+            if (!Enum.TryParse<MyPromoteLevel>(rank, true, out var promoteLevel) || !Enum.IsDefined(typeof(MyPromoteLevel), promoteLevel) || promoteLevel > MyPromoteLevel.Admin)
             {
                 Context.Respond($"Неверный уровень '{rank}'.");
                 return;
             }
 
             MySession.Static.SetUserPromoteLevel(id, promoteLevel);
-            Context.Respond($"Игроку '{playerNameOrId}' задан уровень '{promoteLevel}'.");
+            Context.Respond($"Игроку '{playerNameOrId}' (SteamID {id}) задан уровень '{promoteLevel}'.");
         }
 
         [Command("reserve", "Добавляет игрока в список зарезервированных слотов.")]
