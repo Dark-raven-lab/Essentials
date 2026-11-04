@@ -30,9 +30,7 @@ namespace Essentials
             Context.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsSelf(Context.RawArgs);
         }
 
-        private const string TeleportHelp = "\nНик, имя грида или ID; имена с пробелами в кавычках. Статичные гриды, планеты и астероиды не перемещаются.";
-
-        [Command("tp", "Перемещает грид или персонажа к цели.", "!tp <кого> <куда>" + TeleportHelp + "\nПример: !tp Иван \"Моя база\"")]
+        [Command("tp", "Перемещает грид или персонажа к цели. Ник, имя грида или ID.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void Teleport(string entityToMove, string destination)
         {
@@ -140,14 +138,14 @@ namespace Essentials
             return true;
         }
 
-        [Command("tpto", "Перемещает вас к цели.", "!tpto <куда> [кого]. Из кокпита перемещается весь корабль." + TeleportHelp + "\nПример: !tpto \"Моя база\"")]
+        [Command("tpto", "Перемещает вас к цели, из кокпита вместе с кораблём.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void TeleportTo(string destination, string entityToMove = null)
         {
             Teleport(entityToMove, destination);
         }
 
-        [Command("tphere", "Перемещает грид или персонажа к вам.", "!tphere <кого> [куда]" + TeleportHelp + "\nПример: !tphere Иван")]
+        [Command("tphere", "Перемещает грид или персонажа к вам.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void TeleportHere(string entityToMove, string destination = null) 
         {

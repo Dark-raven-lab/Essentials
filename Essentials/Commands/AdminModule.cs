@@ -294,7 +294,7 @@ namespace Essentials.Commands
 
         private IChatManagerServer ChatManager => EssentialsPlugin.Instance.Torch.CurrentSession.Managers.GetManager<IChatManagerServer>();
 
-        [Command("mute", "Запрещает игроку писать в чат и вводить команды на указанное число минут. Без минут или с 0 — без срока. Игрок указывается по нику или SteamID.")]
+        [Command("mute", "Запрещает игроку чат и команды на N минут, без минут или 0 — навсегда.")]
         public void MuteUser(string user, int timeout = 0)
         {
             if (!Utilities.TryGetPlayerByNameOrSteamId(user, out var steamId, out var name))

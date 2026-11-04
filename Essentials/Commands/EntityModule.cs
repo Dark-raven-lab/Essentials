@@ -43,16 +43,13 @@ namespace Essentials
         private static Action<MyReplicationServer, IMyReplicable, Endpoint> _forceReplicable;
 #pragma warning restore 649
 
-        private const string EntityHelp = "\nСущность указывается по точному имени или ID. Имена с пробелами берите в кавычки. Если под имя подходит несколько сущностей, команда ничего не делает и выводит их ID.";
-        private const string PlayerHelp = "\nИгрок указывается по нику, SteamID, ID личности или ID персонажа. Ник с пробелами берите в кавычки.";
-
         private static readonly TimeSpan RefreshCooldown = TimeSpan.FromMinutes(1);
 
         private static Dictionary<ulong, DateTime> _commandtimeout = new Dictionary<ulong, DateTime>();
 
         private string Admin => Context.Player?.DisplayName ?? "console";
 
-        [Command("refresh", "Заново синхронизирует все сущности для игрока, вызвавшего команду.", "Заново отправляет вам все сущности, загруженные вокруг вас. Помогает, если грид или персонаж отображаются неправильно. Доступна раз в минуту.")]
+        [Command("refresh", "Заново загружает сущности вокруг вас. Не чаще раза в минуту.")]
         [Permission(MyPromoteLevel.None)]
         public void Refresh()
         {
@@ -95,7 +92,7 @@ namespace Essentials
             Context.Respond($"Принудительно синхронизировано сущностей: {replicableList.Count}.");
         }
 
-        [Command("stop", "Останавливает сущность и всё, что с ней физически связано.", "Обнуляет скорость грида вместе с физически связанными гридами, включая пристыкованные. Для сидящего игрока останавливает его корабль." + EntityHelp + "\nПример: !entities stop \"Мой корабль\"")]
+        [Command("stop", "Останавливает грид вместе со связанными и пристыкованными. Цель: имя или ID.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void Stop(string entityName)
         {
@@ -123,7 +120,7 @@ namespace Essentials
             Log.Info($"{Admin} stopped {top.DisplayName} ({top.EntityId})");
         }
 
-        [Command("delete", "Удаляет грид или плавающий объект.", "Удаляет грид вместе с тем, что связано с ним роторами, поршнями и шарнирами, либо плавающий объект. Пристыкованные через коннектор гриды и шасси не затрагиваются. Персонажей, планеты, астероиды и отдельные блоки удалять нельзя." + EntityHelp + "\nПример: !entities delete 123456789")]
+        [Command("delete", "Удаляет грид без пристыкованных или плавающий объект. Цель: имя или ID.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void Delete(string entityName)
         {
@@ -152,7 +149,7 @@ namespace Essentials
             }
         }
 
-        [Command("kill", "Убивает игрока.", "Убивает персонажа игрока, в том числе сидящего и находящегося офлайн, и объявляет об этом в общем чате." + PlayerHelp + "\nПример: !entities kill Иван")]
+        [Command("kill", "Убивает игрока, даже сидящего или офлайн. Игрок: ник, SteamID или ID.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void Kill(string playerName)
         {
@@ -181,7 +178,7 @@ namespace Essentials
             Log.Info($"{Admin} killed {character.DisplayName} ({character.EntityId})");
         }
 
-        [Command("find", "Ищет сущности с указанным текстом в названии.", "Ищет сущности по части названия без учёта регистра, включая сидящих персонажей. Для каждой выводит имя, ID и тип, а для грида ещё число блоков и владельца.\nПример: !entities find база")]
+        [Command("find", "Ищет сущности по части названия.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void Find(string name)
         {
@@ -198,14 +195,14 @@ namespace Essentials
             Context.Respond(sb.Length > 0 ? "Найденные сущности:\n" + sb : "Ничего не найдено.");
         }
 
-        [Command("poweroff", "Выключает питание грида.", "Выключает все источники питания (реакторы, батареи, солнечные панели, водородные двигатели, ветрогенераторы) грида и всего, что связано с ним роторами, поршнями и шарнирами." + EntityHelp + "\nПример: !entities poweroff \"Мой корабль\"")]
+        [Command("poweroff", "Выключает все источники питания грида. Цель: имя или ID.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void PowerOff(string name)
         {
             SetPower(name, false);
         }
 
-        [Command("poweron", "Включает питание грида.", "Включает все источники питания (реакторы, батареи, солнечные панели, водородные двигатели, ветрогенераторы) грида и всего, что связано с ним роторами, поршнями и шарнирами. Включается всё, в том числе то, что владелец выключил сам." + EntityHelp + "\nПример: !entities poweron \"Мой корабль\"")]
+        [Command("poweron", "Включает все источники питания грида. Цель: имя или ID.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void PowerOn(string name)
         {
@@ -235,7 +232,7 @@ namespace Essentials
             Log.Info($"{Admin} turned power {(enabled ? "on" : "off")} on {grid.DisplayName} ({grid.EntityId}), blocks changed: {blocks.Count}");
         }
 
-        [Command("eject", "Высаживает игрока из блока, в котором он сидит, или всех, если указать 'all'", "Высаживает игрока из кокпита, кресла или криокамеры и отключает от пульта дистанционного управления. Вариант 'all' действует на всех, включая офлайн-игроков, спящих в криокамерах, и ботов." + PlayerHelp + "\nПримеры: !entities eject Иван или !entities eject all")]
+        [Command("eject", "Высаживает игрока из кресла или криокамеры, all — всех. Игрок: ник, SteamID или ID.")]
         public void Eject(string playerName)
         {
             if (playerName.ToLower() == "all")

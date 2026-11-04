@@ -63,7 +63,7 @@ namespace Essentials.Commands
             foreach (var command in commands.WalkTree(voxels).Where(n => n.IsCommand).Select(n => n.Command).OrderBy(c => c.SyntaxHelp))
             {
                 sb.AppendLine(command.SyntaxHelp);
-                sb.AppendLine($"   {command.HelpText}");
+                sb.AppendLine($"    {command.HelpText}");
             }
 
             Context.Respond(sb.ToString());

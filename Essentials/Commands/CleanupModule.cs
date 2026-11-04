@@ -91,7 +91,7 @@ namespace Essentials.Commands
             foreach (var c in ConditionsChecker.GetAllConditions())
             {
                 sb.AppendLine($"{c.Command}{(string.IsNullOrEmpty(c.InvertCommand) ? string.Empty : $" ({c.InvertCommand})")}:");
-                sb.AppendLine($"   {c.HelpText}");
+                sb.AppendLine($"    {c.HelpText}");
             }
 
             if (!Context.SentBySelf)
