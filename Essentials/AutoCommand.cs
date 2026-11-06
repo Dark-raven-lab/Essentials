@@ -36,14 +36,14 @@ namespace Essentials
         [XmlIgnore]
         public bool Completed { get; set; }
 
-        [Display(Order = 3, Name = "Trigger", Description ="Choose a trigger for the command")]
+        [Display(Order = 3, Name = "Триггер", GroupName = "Основное", Description = "Когда запускать: Disabled — только вручную (!admin runauto), Timed — каждый интервал, Scheduled — в заданное время суток, OnStart — при старте сервера, PlayerCount, GridCount и SimSpeed — по условию, Vote — по итогам голосования !vote.")]
         public Trigger CommandTrigger
         {
             get => _trigger;
             set => SetValue(ref _trigger, value);
         }
         
-        [Display(Order = 6, Name = "Trigger Operator", Description ="Choose a comparer for the command")]
+        [Display(Order = 6, Name = "Сравнение", GroupName = "Основное", Description = "Для PlayerCount, GridCount и SimSpeed: LessThan — меньше порога, GreaterThan — больше, Equal — равно.")]
         public Gtl Compare
         {
             get => _comparer;
@@ -51,14 +51,14 @@ namespace Essentials
         }
 
         
-        [Display(Order = 1, Description = "Sets the name of this command. Use this name in conjunction with !admin runauto to trigger the command from ingame or from other auto commands.")]
+        [Display(Order = 1, Name = "Имя", GroupName = "Основное", Description = "По этому имени автокоманду запускают командой !admin runauto, в том числе из других автокоманд, и голосованием !vote.")]
         public string Name
         {
             get => _name;
             set => SetValue(ref _name, value);
         }
 
-        [Display(Order = 2, Description = "Sets an interval/Time for this command to be repeated. Format is HH:MM:SS.")]
+        [Display(Order = 2, Name = "Интервал", GroupName = "Основное", Description = "Timed — период повтора, Scheduled — время суток запуска, Vote — длительность голосования, PlayerCount, GridCount и SimSpeed — пауза между проверками. Формат ЧЧ:ММ:СС, с днями д.ЧЧ:ММ:СС.")]
         public string Interval
         {
             get => _interval.ToString();
@@ -83,7 +83,7 @@ namespace Essentials
             }
         }
 
-        [Display(Order = 5, Name = "Trigger Ratio", Description = "Ratio for Sim Speed or Vote Trigger. 0.5 is equivalent to 50%")]
+        [Display(Order = 5, Name = "Доля", GroupName = "Основное", Description = "SimSpeed — порог скорости симуляции, Vote — доля голосов «за» от игроков онлайн. От 0 до 1, 0.5 — это 50%.")]
         public float TriggerRatio
         {
             get => _triggerRatio;
@@ -91,7 +91,7 @@ namespace Essentials
 
         }
         
-        [Display(Order = 4, Name = "Trigger Count", Description = "Only use with GridCount or PlayerCount Trigger")]
+        [Display(Order = 4, Name = "Порог", GroupName = "Основное", Description = "GridCount и PlayerCount — число гридов или игроков, SimSpeed — сколько секунд условие должно держаться, Vote — через сколько секунд игрок может начать новое голосование.")]
         public double TriggerCount
         {
             get => _triggerCount;
@@ -99,14 +99,14 @@ namespace Essentials
 
         }
 
-        [Display(Name = "Day of week", GroupName = "Schedule", Description = "Combined with Scheduled Time, will run the command on the given day of the week at the set time.")]
+        [Display(Name = "День недели", GroupName = "Расписание", Description = "Для Scheduled: в какой день недели запускать в заданное время. All — каждый день.")]
         public DayOfWeek DayOfWeek
         {
             get => _day;
             set => SetValue(ref _day, value);
         }
 
-        [Display(Order = 7, Description = "Sub-command steps that will be iterated through once the Interval or Scheduled time is reached.")]
+        [Display(Order = 7, Name = "Шаги", GroupName = "Основное", Description = "Команды, которые выполняются по очереди, когда автокоманда срабатывает.")]
         public ObservableCollection<CommandStep> Steps { get; } = new ObservableCollection<CommandStep>();
 
         public AutoCommand()
@@ -158,14 +158,14 @@ namespace Essentials
             internal TimeSpan DelaySpan;
             private string _command;
 
-            [Display(Description = "Delay AFTER this step and BEFORE the next step. Format is HH:MM:SS.")]
+            [Display(Order = 1, Name = "Задержка", Description = "Пауза после этого шага перед следующим. Формат ЧЧ:ММ:СС.")]
             public string Delay
             {
                 get => DelaySpan.ToString();
                 set => SetValue(ref DelaySpan, TimeSpan.Parse(value));
             }
 
-            [Display(Description = "Command to be run as the server.")]
+            [Display(Order = 2, Name = "Команда", Description = "Команда, которую выполняет сервер, например !say Рестарт через 5 минут.")]
             public string Command
             {
                 get => _command;

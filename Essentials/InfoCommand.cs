@@ -11,28 +11,28 @@ namespace Essentials
         private string _dialogResponse;
         private string _urlResponse;
 
-        [Display(Order = 1, Name = "Command", Description = "Type this in chat to activate command")]
+        [Display(Order = 1, Name = "Команда", Description = "Сообщение чата целиком, на которое отвечает сервер, например !discord. Само сообщение в чат не попадает.")]
         public string Command
         {
             get => _command;
             set => SetValue(ref _command, value);
         }
 
-        [Display(Order = 2, Name = "Chat Response", Description = "Chat response to command")]
+        [Display(Order = 2, Name = "Ответ в чат", Description = "Текст, который игрок получит в чат. Пусто — без ответа в чат.")]
         public string ChatResponse
         {
             get => _chatResponse;
             set =>SetValue(ref _chatResponse, value);
         }
 
-        [Display(Order = 3, Name = "Dialog Response", Description = "Dialog box response")]
+        [Display(Order = 3, Name = "Ответ окном", Description = "Текст, который откроется у игрока в окне. Пусто — без окна.")]
         public string DialogResponse
         {
             get => _dialogResponse;
             set => SetValue(ref _dialogResponse, value);
         }
 
-        [Display(Order = 4, Name = "URL", Description = "url response to command")]
+        [Display(Order = 4, Name = "Ссылка", Description = "Страница, которая откроется у игрока в оверлее Steam. Пусто — без ссылки.")]
         public string URL
         {
             get => _urlResponse;

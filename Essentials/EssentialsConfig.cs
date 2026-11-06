@@ -26,51 +26,54 @@ namespace Essentials
             InfoCommands.CollectionChanged += (sender, args) => OnPropertyChanged();
         }
 
-        [Display(EditorType = typeof(EmbeddedCollectionEditor))]
+        [Display(Order = 30, GroupName = "Автокоманды", EditorType = typeof(EmbeddedCollectionEditor), Description = "Команды, которые сервер выполняет сам: по времени, по расписанию, при старте, по условию или по итогам голосования !vote.")]
         public ObservableCollection<AutoCommand> AutoCommands { get; } = new ObservableCollection<AutoCommand>();
 
-        [Display(EditorType = typeof(EmbeddedCollectionEditor))]
+        [Display(Order = 40, GroupName = "Инфо-команды", EditorType = typeof(EmbeddedCollectionEditor), Description = "Сообщения чата, на которые сервер отвечает игроку заданным текстом в чат, окном или ссылкой. Изменения действуют сразу.")]
         public ObservableCollection<InfoCommand> InfoCommands { get; } = new ObservableCollection<InfoCommand>();
 
         private string _motd;
-        [Display(Name = "Motd", Description = "Message displayed to players upon connection")]
+        [Display(Order = 1, Name = "Сообщение дня", GroupName = "Общие/Сообщение дня", Description = "Окно, которое игрок видит после входа на сервер. %player% заменяется на ник игрока.")]
+        [Multiline]
         public string Motd { get => _motd; set => SetValue(ref _motd, value); }
 
         public bool _enableRanks = false;
-        [Display(Name = "Enable custom ranks", GroupName = "Custom Ranks", Order = 0, Description = "Enable the custom ranks system for this server.")]
+        [Display(Order = 50, Name = "Включить ранги", GroupName = "Ранги", Description = "Включает систему рангов Essentials (команды !pr). Действует после перезапуска сервера.")]
         public bool EnableRanks { get => _enableRanks; set => SetValue(ref _enableRanks, value); }
 
         public string _defaultRank = "Default";
-        [Display(Name = "Default rank assignment", GroupName = "Custom Ranks", Order = 1, Description = "The rank users will get when they first join the server.")]
+        [Display(Order = 51, Name = "Ранг по умолчанию", GroupName = "Ранги", Description = "Ранг, который игрок получает при первом входе на сервер.")]
         public string DefaultRank { get => _defaultRank; set => SetValue(ref _defaultRank, value); }
 
         public bool _overridePerms = false;
-        [Display(Name = "Override vanilla Torch/Plugin Permissions", GroupName = "Custom Ranks", Order = 2, Description = "Enabling this will cause the custom rank permissions system to overide any vanilla permissions... MAKE SURE RANKS HAVE PERMS SET BEFORE ENABLING")]
+        [Display(Order = 52, Name = "Права рангов вместо прав Torch", GroupName = "Ранги", Description = "Права из рангов заменяют обычные права Torch и плагинов, а уровень прав игрока при входе берётся из его ранга. Перед включением задайте рангам права!")]
         public bool OverrideVanillaPerms { get => _overridePerms; set => SetValue(ref _overridePerms, value); }
 
         public bool _enableHomes = false;
-        [Display(Name = "Enable homes functionality", GroupName = "Custom Ranks", Order = 3, Description = "Enable the custom homes system for this server.", Enabled = false)]
+        [Display(Order = 53, Name = "Включить дома", GroupName = "Ранги", Description = "Включает команды !home. Сколько домов можно сохранить, задаёт ранг игрока (!pr setmaxhomes).")]
         public bool EnableHomes { get => _enableHomes; set => SetValue(ref _enableHomes, value); }
 
         private string _newUserMotd;
+        [Display(Order = 2, Name = "Сообщение для новичков", GroupName = "Общие/Сообщение дня", Description = "Показывается вместо сообщения дня игроку, который заходит на сервер впервые. %player% заменяется на ник игрока.")]
+        [Multiline]
         public string NewUserMotd { get => _newUserMotd; set => SetValue(ref _newUserMotd, value); }
 
         private string _motdUrl;
-        [Display(Name = "MotdURL", Description = "Sets a URL to show to players when they connect. Opens in the steam overlay, if enabled.")]
+        [Display(Order = 3, Name = "Ссылка вместо сообщения", GroupName = "Общие/Сообщение дня", Description = "Если задана, после входа у игрока открывается эта страница в оверлее Steam вместо сообщения дня.")]
         public string MotdUrl { get => _motdUrl; set => SetValue(ref _motdUrl, value); }
 
         private bool _newUserMotdUrl;
-        [Display(Name = "Url for New Users Only", Description = "MOTD URL for new users only")]
+        [Display(Order = 4, Name = "Ссылка только новичкам", GroupName = "Общие/Сообщение дня", Description = "Открывать ссылку только тем, кто заходит впервые. Остальные видят сообщение дня.")]
         public bool NewUserMotdUrl{get => _newUserMotdUrl;set => SetValue(ref _newUserMotdUrl, value);}
 
         private bool _stopShips;
-        [Display(Name = "Stop entities on start", Description = "Stop all entities in the world when the server starts.")]
+        [Display(Order = 10, Name = "Остановить всё при старте", GroupName = "Общие/Сервер", Description = "При запуске сервера обнуляет скорость всех объектов мира.")]
         public bool StopShipsOnStart { get => _stopShips; set => SetValue(ref _stopShips, value); }
 
 
         private bool _utilityShowPosition;
 
-        [Display(Name = "Grid list show position",Description = "Show users the position of all grids they own in the grids list command.")]
+        [Display(Order = 21, Name = "Координаты в !grids list", GroupName = "Общие/Игроки", Description = "Показывать игрокам координаты их гридов в !grids list.")]
         public bool UtilityShowPosition
         {
             get => _utilityShowPosition;
@@ -79,7 +82,7 @@ namespace Essentials
 
         private bool _markerShowPosition;
 
-        [Display(Name = "Grid list GPS marker",Description ="Show uservers the poition of all grids they own by gps marker")]
+        [Display(Order = 22, Name = "GPS-метки в !grids list", GroupName = "Общие/Игроки", Description = "Ставить игрокам GPS-метки на их гриды при !grids list.")]
         public bool MarkerShowPosition
         {
             get => _markerShowPosition;
@@ -87,7 +90,7 @@ namespace Essentials
         }
 
         private int _backpackLimit = 1;
-        [Display(Name = "Backpack Limit", Description = "Sets the number of backpacks that can belong to any player. Empty backpacks are deleted after 30 seconds, and backpacks which break the limit are deleted in order spawned. Set -1 for no limit.")]
+        [Display(Order = 20, Name = "Лимит рюкзаков", GroupName = "Общие/Игроки", Description = "Сколько рюкзаков может быть у одного игрока. Пустые и лишние рюкзаки удаляются через 30 секунд, лишние начиная с самых старых. 0 — удалять все, -1 — без ограничения.")]
         public int BackpackLimit
         {
             get => _backpackLimit;
@@ -95,7 +98,7 @@ namespace Essentials
         }
 
         private bool _cutGameTags;
-        [Display(Name = "Cut Game Tags", GroupName = "Client Join Tweaks", Order = 8, Description = "Cuts mods and blocks limits from matchmaking server info. Prevents from 'error downloading session settings'.")]
+        [Display(Order = 11, Name = "Скрыть моды и лимиты в списке серверов", GroupName = "Общие/Сервер", Description = "Убирает моды и лимиты блоков из информации о сервере в списке серверов. Помогает от ошибки «error downloading session settings» при подключении. Действует после перезапуска Torch.")]
         public bool CutGameTags
         {
             get => _cutGameTags;
