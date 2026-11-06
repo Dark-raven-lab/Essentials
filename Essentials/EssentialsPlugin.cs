@@ -57,6 +57,7 @@ namespace Essentials
         private PatchContext _context;
         private KnownIdsStorage _knownIds;
         public MuteStorage Mutes { get; private set; }
+        public PollStorage Polls { get; private set; }
 
         public static EssentialsPlugin Instance { get; private set; }
         public PlayerAccountModule AccModule = new PlayerAccountModule();
@@ -81,6 +82,7 @@ namespace Essentials
             _knownIds = new KnownIdsStorage(Path.Combine(StoragePath, "Essentials.KnownSteamIds.txt"));
             _knownIds.Read();
             Mutes = new MuteStorage(Path.Combine(StoragePath, "Essentials.Mutes.txt"));
+            Polls = new PollStorage(Path.Combine(StoragePath, "Essentials.Polls.json"));
             _sessionManager = Torch.Managers.GetManager<TorchSessionManager>();
             if (_sessionManager != null)
                 _sessionManager.SessionStateChanged += SessionChanged;
@@ -165,6 +167,7 @@ namespace Essentials
                     AutoCommands.Instance.Start();
                     InfoModule.Init();
                     Mutes.Start();
+                    Polls.Start();
                     _initilized = true;
 
 
@@ -185,6 +188,7 @@ namespace Essentials
 
 
                     Mutes.Stop();
+                    Polls.Stop();
                     _bagTracker.Clear();
                     _removalTracker.Clear();
                     break;
@@ -261,6 +265,7 @@ namespace Essentials
         {
             ProcessBags();
             Mutes.Update();
+            Polls.Update();
         }
 
         private void StopShips()
@@ -312,6 +317,8 @@ namespace Essentials
 
                             SendMotd(p, true);
                            _motdOnce.Add(player.SteamId);
+                            //here and not on PlayerJoined: the identity has to exist, or the chat message goes to everyone
+                            Polls.RemindOnJoin(player.SteamId);
                         });
 
                         break;
