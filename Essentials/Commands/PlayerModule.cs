@@ -252,6 +252,13 @@ namespace Essentials
         [Permission(MyPromoteLevel.None)]
         public void Motd()
         {
+            //the message of the day is a window or a Steam page on the player's screen, the console has none
+            if (Context.Player == null)
+            {
+                Context.Respond("Команда доступна только игрокам.");
+                return;
+            }
+
             Plugin.SendMotd((MyPlayer)Context.Player, false);
         }
     }
