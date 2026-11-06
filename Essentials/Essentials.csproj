@@ -160,6 +160,7 @@
     <Compile Include="Conditions\ConditionModule.cs" />
     <Compile Include="Conditions\ConditionsChecker.cs" />
     <Compile Include="Conditions\ConditionsImplementations.cs" />
+    <Compile Include="ConfigControl.cs" />
     <Compile Include="EssentialsConfig.cs" />
     <Compile Include="Commands\EntityModule.cs" />
     <Compile Include="EssentialsControl.xaml.cs">

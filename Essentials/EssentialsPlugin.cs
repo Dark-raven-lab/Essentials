@@ -65,7 +65,7 @@ namespace Essentials
         private static bool _initilized = false;
 
         /// <inheritdoc />
-        public UserControl GetControl() => _control ?? (_control = new PropertyGrid(){DataContext=Config/*, IsEnabled = false*/});
+        public UserControl GetControl() => _control ?? (_control = new ConfigControl { DataContext = Config });
 
         public void Save()
         {
