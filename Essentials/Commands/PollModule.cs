@@ -18,7 +18,7 @@ namespace Essentials.Commands
 
         [Command("create", "Создаёт опрос «за/против» на указанное число дней.")]
         [Permission(MyPromoteLevel.Admin)]
-        public void Create(int days)
+        public void Create(int days, string question)
         {
             if (days < 1 || days > MaxDays)
             {
@@ -26,8 +26,9 @@ namespace Essentials.Commands
                 return;
             }
 
+            //the parameter only shows the question in the syntax help: Torch gives it the first word,
             //the question is the rest of the line, so it needs no quotes
-            var question = Context.RawArgs.Trim();
+            question = Context.RawArgs.Trim();
             var space = question.IndexOf(' ');
             question = space < 0 ? string.Empty : question.Substring(space + 1).Trim().Trim('"').Trim();
             if (question.Length == 0)
