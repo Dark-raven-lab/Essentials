@@ -46,6 +46,18 @@ namespace Essentials {
 
             [JsonProperty(Order = 8)]
             public Dictionary<string, Vector3D> Homes { get; set; } = new Dictionary<string, Vector3D>();
+
+            /// <summary>The rank PCU bonus last given to the player.</summary>
+            [JsonProperty(Order = 9)]
+            public int PcuBonus { get; set; } = 0;
+
+            /// <summary>The part of the player's PCU delta in the world that is not the bonus; null until a bonus is given and after a world with PCU trading on.</summary>
+            [JsonProperty(Order = 10, NullValueHandling = NullValueHandling.Ignore)]
+            public int? PcuBase { get; set; }
+
+            /// <summary>The identity the PCU bonus was given to; a new identity of the player has none of it.</summary>
+            [JsonProperty(Order = 11, NullValueHandling = NullValueHandling.Ignore)]
+            public long? PcuIdentity { get; set; }
         }
 
 
@@ -116,6 +128,7 @@ namespace Essentials {
 
         public void SaveAccountData() {
             File.WriteAllText(EssentialsPlugin.Instance.homeDataPath, JsonConvert.SerializeObject(PlayersAccounts, Formatting.Indented));
+            RankOperations.RaiseChanged();
         }
 
         public void GenerateAccount(Torch.API.IPlayer player) {

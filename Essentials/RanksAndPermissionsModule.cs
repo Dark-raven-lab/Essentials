@@ -55,6 +55,10 @@ namespace Essentials {
 
             [JsonProperty(Order = 9)]
             public Dictionary<Guid, object> PluginData { get; set; } = new Dictionary<Guid, object>();
+
+            /// <summary>PCU added to the limit of the players of the rank, see <see cref="RankOperations.SyncPcu(IEnumerable{PlayerAccountModule.PlayerAccountData})"/>.</summary>
+            [JsonProperty(Order = 10)]
+            public int PcuBonus { get; set; } = 0;
         }
 
         public void UpdateRankObject(RankData obj) {
@@ -67,6 +71,7 @@ namespace Essentials {
 
         public void SaveRankData() {
             File.WriteAllText(EssentialsPlugin.Instance.rankDataPath, JsonConvert.SerializeObject(Ranks, Formatting.Indented));
+            RankOperations.RaiseChanged();
         }
 
         public bool GenerateRank(string name) {
@@ -103,108 +108,62 @@ namespace Essentials {
                 return rank;
             return null;
         }
-        public bool RankHasPermission(string rank, string cmd, ulong forSteamID) {
-            Dictionary<string, List<string>> InheritedPerms = new Dictionary<string, List<string>>();
+        /// <summary>
+        /// The personal permissions of the player come first, then the player's rank, then the ranks it inherits, the
+        /// nearest first. The first of them that names the command decides, a ban winning over an allow within one;
+        /// "*" counts only in a list that does not name the command.
+        /// </summary>
+        /// <returns>Null when no list names the command or "*": the ranks leave it to Torch.</returns>
+        public bool? RankHasPermission(string rank, string cmd, ulong forSteamID) {
             RankData data = GetRankData(rank);
-            PlayerAccountModule.PlayerAccountData Account = PlayerAccountModule.GetAccount(forSteamID);
             if (data == null) {
                 Log.Error($"GetRankData({rank}) returned null.");
-                return false;
-            }
-            bool hasPermission = false;
-            /*
-             * If there ranks in the Inherit list,
-             * check their permissions first.
-             */
-            if (data.Inherits.Count != 0) {
-                InheritedPerms = GetInheritPermList(forSteamID);
-
-                if (InheritedPerms["Allowed"].Contains("*") && !InheritedPerms["Disallowed"].Contains(cmd)) {
-                    hasPermission = true;
-                }
-                else if (InheritedPerms["Allowed"].Contains(cmd)) {
-                    hasPermission = true;
-                }
-                else if (InheritedPerms["Disallowed"].Contains("*") && !InheritedPerms["Allowed"].Contains(cmd)) {
-                    hasPermission = false;
-                }
-                else if ((InheritedPerms["Disallowed"].Contains(cmd))) {
-                    hasPermission = false;
-                }
-
-                if (hasPermission)
-                    return hasPermission;
+                return null;
             }
 
-            /*
-             * Check the players main rank
-             * permissions
-             */
-            if (data.Permissions.Allowed.Count == 0 && data.Permissions.Disallowed.Count == 0) {
-                return hasPermission;
-            }
+            if (!PlayersInheritedRanksStore.ContainsKey(forSteamID))
+                BuildInheritedRanks(forSteamID);
 
-            if (data.Permissions.Allowed.Contains("*") && !data.Permissions.Disallowed.Contains(cmd)) {
-                hasPermission = true;
-            }
-            else if (data.Permissions.Allowed.Contains(cmd)) {
-                hasPermission = true;
-            }
-            else if (data.Permissions.Disallowed.Contains("*") && !data.Permissions.Allowed.Contains(cmd)) {
-                hasPermission = false;
-            }
-            else if (data.Permissions.Disallowed.Contains(cmd)) {
-                hasPermission = false;
-            }
+            var lists = new List<Permissions>();
+            var account = PlayerAccountModule.GetAccount(forSteamID);
+            if (account != null)
+                lists.Add(account.Permissions);
+            lists.Add(data.Permissions);
+            lists.AddRange(PlayersInheritedRanksStore[forSteamID].Select(r => r.Permissions));
 
-            if (hasPermission)
-                return hasPermission;
-
-
-            /*
-             * Check the player specific permissions.
-             */
-            if (Account.Permissions.Allowed.Count == 0 && Account.Permissions.Disallowed.Count == 0) {
-                return hasPermission;
+            foreach (var list in lists) {
+                if (list.Disallowed.Contains(cmd))
+                    return false;
+                if (list.Allowed.Contains(cmd))
+                    return true;
+                if (list.Disallowed.Contains("*"))
+                    return false;
+                if (list.Allowed.Contains("*"))
+                    return true;
             }
-
-            if (Account.Permissions.Allowed.Contains("*") && !Account.Permissions.Disallowed.Contains(cmd)) {
-                hasPermission = true;
-            }
-            else if (Account.Permissions.Allowed.Contains(cmd)) {
-                hasPermission = true;
-            }
-            else if (Account.Permissions.Disallowed.Contains("*") && !Account.Permissions.Allowed.Contains(cmd)) {
-                hasPermission = false;
-            }
-            else if (Account.Permissions.Disallowed.Contains(cmd)) {
-                hasPermission = false;
-            }
-
-            //return result
-            return hasPermission;
+            return null;
         }
 
         public void HasCommandPermission(Command command, IMyPlayer player, bool hasPermission, ref bool? hasPermissionOverride) {
-            if (!EssentialsPlugin.Instance.Config.EnableRanks)
+            if (!EssentialsPlugin.Instance.Config.EnableRanks || player == null)
                 return;
 
             string playersRank = PlayerAccountModule.GetRank(player.SteamUserId);
-            string cmd = "";
-            foreach (var part in command.Path) {
-                cmd += part + " ";
-            }
-            cmd = cmd.TrimEnd();
-            bool hasPerm = RankHasPermission(playersRank, cmd, player.SteamUserId);
+            string cmd = string.Join(" ", command.Path);
+            var hasPerm = RankHasPermission(playersRank, cmd, player.SteamUserId);
             if(!debug) {
                 Log.Error($"HasPerm returned {hasPerm}");
             }
 
-            if (EssentialsPlugin.Instance.Config.OverrideVanillaPerms && hasPerm)
-                hasPermissionOverride = hasPerm;
+            //a rank without a word on the command keeps what Torch decided, so an empty rank blocks nothing
+            if (hasPerm == null)
+                return;
 
-            if (hasPermission && !hasPerm) {
-                hasPermissionOverride = hasPerm;
+            if (EssentialsPlugin.Instance.Config.OverrideVanillaPerms && hasPerm == true)
+                hasPermissionOverride = true;
+
+            if (hasPermission && hasPerm == false) {
+                hasPermissionOverride = false;
                 Log.Info($"{player.DisplayName} tried to use the blocked command '{cmd}'");
                 ModCommunication.SendMessageTo(new NotificationMessage($"У вас нет прав на эту команду!", 10000, "Red"), player.SteamUserId);
             }
@@ -223,33 +182,6 @@ namespace Essentials {
             return permList;
 
         }
-
-        public Dictionary<string, List<string>> GetInheritPermList(ulong steamID) {
-            Dictionary<string, List<string>> Perms = new Dictionary<string, List<string>>();
-
-            List<string> Allowed = new List<string>();
-            List<string> Disallowed = new List<string>();
-
-            foreach (RankData rank in PlayersInheritedRanksStore[steamID]) {
-                foreach (var AllowedCommand in rank.Permissions.Allowed) {
-                    if (!Allowed.Contains(AllowedCommand)) {
-                        Allowed.Add(AllowedCommand);
-                    }
-                }
-
-                foreach (var DisallowedCommand in rank.Permissions.Disallowed) {
-                    if (!Disallowed.Contains(DisallowedCommand)) {
-                        Disallowed.Add(DisallowedCommand);
-                    }
-                }
-            }
-
-            Perms.Add("Allowed", Allowed);
-            Perms.Add("Disallowed", Disallowed);
-            return Perms;
-
-        }
-
 
         public MyPromoteLevel ParseMyPromoteLevel(string stringValue) {
             MyPromoteLevel myPromoteLevel = new MyPromoteLevel();

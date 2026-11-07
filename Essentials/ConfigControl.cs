@@ -87,6 +87,9 @@ namespace Essentials
                     AddSetting(grid, setting.Property, setting.Display);
                 }
 
+                if (tab.Key == RanksPanel.TabName)
+                    panel.Children.Add(new RanksPanel());
+
                 // no own ScrollViewer: Torch already wraps the plugin page in one, which gives an inner viewer
                 // infinite height (nothing to scroll) while it still swallows the mouse wheel
                 tabs.Items.Add(new TabItem { Header = tab.Key, Content = panel });
@@ -96,7 +99,7 @@ namespace Essentials
             Content = tabs;
         }
 
-        private static Grid CreateGrid()
+        internal static Grid CreateGrid()
         {
             var grid = new Grid { Margin = new Thickness(0, 3, 0, 3) };
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto, SharedSizeGroup = "Labels" });
@@ -104,12 +107,15 @@ namespace Essentials
             return grid;
         }
 
-        private static void AddSetting(Grid grid, PropertyInfo property, DisplayAttribute display)
+        /// <param name="textTrigger">When a text box gives its text to the setting; check boxes and lists give it at once.</param>
+        /// <returns>The editor.</returns>
+        internal static FrameworkElement AddSetting(Grid grid, PropertyInfo property, DisplayAttribute display,
+            UpdateSourceTrigger textTrigger = UpdateSourceTrigger.PropertyChanged)
         {
             int row = grid.RowDefinitions.Count;
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            var editor = CreateEditor(property, display);
+            var editor = CreateEditor(property, display, textTrigger);
             editor.IsEnabled = display.Enabled;
             SetToolTip(editor, display.Description);
             Grid.SetRow(editor, row);
@@ -133,9 +139,10 @@ namespace Essentials
             }
 
             grid.Children.Add(editor);
+            return editor;
         }
 
-        private static FrameworkElement CreateEditor(PropertyInfo property, DisplayAttribute display)
+        private static FrameworkElement CreateEditor(PropertyInfo property, DisplayAttribute display, UpdateSourceTrigger textTrigger)
         {
             if (display.EditorType != null)
             {
@@ -162,7 +169,18 @@ namespace Essentials
                 return checkBox;
             }
 
-            // strings and numbers; an unparsable number gets the red validation border and is not applied
+            if (property.PropertyType.IsEnum)
+            {
+                var comboBox = new ComboBox { Margin = new Thickness(5), MinWidth = 200, HorizontalAlignment = HorizontalAlignment.Left };
+                comboBox.ItemsSource = Enum.GetValues(property.PropertyType);
+                comboBox.SetBinding(Selector.SelectedItemProperty, binding);
+                return comboBox;
+            }
+
+            // strings and numbers; an unparsable number, or a value the setter refuses with an exception, gets the red
+            // validation border and is not applied
+            binding.UpdateSourceTrigger = textTrigger;
+            binding.ValidatesOnExceptions = true;
             var textBox = new TextBox { Margin = new Thickness(5), MinWidth = 200, HorizontalAlignment = HorizontalAlignment.Left };
             if (property.GetCustomAttribute<MultilineAttribute>() != null)
             {
@@ -226,7 +244,7 @@ namespace Essentials
             parent.RaiseEvent(new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta) { RoutedEvent = MouseWheelEvent, Source = element });
         }
 
-        private static void SetToolTip(FrameworkElement element, string text)
+        internal static void SetToolTip(FrameworkElement element, string text)
         {
             if (string.IsNullOrEmpty(text))
                 return;

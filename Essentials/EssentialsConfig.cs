@@ -38,19 +38,19 @@ namespace Essentials
         public string Motd { get => _motd; set => SetValue(ref _motd, value); }
 
         public bool _enableRanks = false;
-        [Display(Order = 50, Name = "Включить ранги", GroupName = "Ранги", Description = "Включает систему рангов Essentials (команды !pr). Действует после перезапуска сервера.")]
+        [Display(Order = 50, Name = "Включить ранги", GroupName = "Ранги/Настройки", Description = "Включает систему рангов Essentials (команды !pr). Права проверяются по порядку: личные права игрока, его ранг, наследуемые ранги. Решает первый список, где есть команда, запрет в нём главнее разрешения; * действует, только если команды в списке нет. Если ни один список не говорит о команде, решает Torch. При выключенных рангах бонус PCU рангов снимается у всех. Действует после перезапуска сервера.")]
         public bool EnableRanks { get => _enableRanks; set => SetValue(ref _enableRanks, value); }
 
         public string _defaultRank = "Default";
-        [Display(Order = 51, Name = "Ранг по умолчанию", GroupName = "Ранги", Description = "Ранг, который игрок получает при первом входе на сервер.")]
+        [Display(Order = 51, Name = "Ранг по умолчанию", GroupName = "Ранги/Настройки", Description = "Ранг, который игрок получает при первом входе на сервер.")]
         public string DefaultRank { get => _defaultRank; set => SetValue(ref _defaultRank, value); }
 
         public bool _overridePerms = false;
-        [Display(Order = 52, Name = "Права рангов вместо прав Torch", GroupName = "Ранги", Description = "Права из рангов заменяют обычные права Torch и плагинов, а уровень прав игрока при входе берётся из его ранга. Перед включением задайте рангам права!")]
+        [Display(Order = 52, Name = "Права рангов вместо прав Torch", GroupName = "Ранги/Настройки", Description = "Разрешение из рангов даёт команду, даже если Torch её не даёт, а уровень прав игрока при входе берётся из его ранга. Без этого ранги умеют только запрещать.")]
         public bool OverrideVanillaPerms { get => _overridePerms; set => SetValue(ref _overridePerms, value); }
 
         public bool _enableHomes = false;
-        [Display(Order = 53, Name = "Включить дома", GroupName = "Ранги", Description = "Включает команды !home. Сколько домов можно сохранить, задаёт ранг игрока (!pr setmaxhomes).")]
+        [Display(Order = 53, Name = "Включить дома", GroupName = "Ранги/Настройки", Description = "Включает команды !home. Сколько домов можно сохранить, задаёт ранг игрока (!pr setmaxhomes).")]
         public bool EnableHomes { get => _enableHomes; set => SetValue(ref _enableHomes, value); }
 
         private string _newUserMotd;

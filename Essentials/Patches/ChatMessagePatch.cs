@@ -52,10 +52,12 @@ namespace Essentials.Patches {
                 var Account = PlayerAccountData.GetAccount(msg.Author);
                 if (Account != null) {
                     var Rank = RanksAndPermissions.GetRankData(Account.Rank);
-                    if (Rank.DisplayPrefix) {
+                    //a rank deleted by hand from the file is set to the default only on the next load
+                    if (Rank != null && Rank.DisplayPrefix && !string.IsNullOrWhiteSpace(Rank.Prefix)) {
                         msg.Author = 0;
                         var customData = msg.CustomData ?? new ChatMessageCustomData();
-                        customData.AuthorName = $"{Rank.Prefix}{Account.Player}";
+                        //the commands trim the prefix, so the space is put here
+                        customData.AuthorName = $"{Rank.Prefix.Trim()} {Account.Player}";
                         msg.CustomData = customData;
                     }
                 }
