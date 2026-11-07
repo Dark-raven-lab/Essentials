@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using NLog;
 using Torch.API.Managers;
 using VRage.Game;
+using VRageMath;
 
 namespace Essentials
 {
@@ -39,6 +40,11 @@ namespace Essentials
         private static readonly Logger Log = LogManager.GetLogger("Essentials");
 
         private const string VoteHint = "Голосуйте: !poll yes <номер> или !poll no <номер>";
+
+        private const string Author = "Опрос";
+
+        //the color is for the author name only, the text uses the font; "Green" of Torch is a teal, so the color is set here
+        private static readonly Color AuthorColor = new Color(0, 200, 0);
 
         private readonly string _filePath;
         private FileData _data = new FileData();
@@ -183,14 +189,14 @@ namespace Essentials
 
         private static void Broadcast(string message)
         {
-            ChatManager?.SendMessageAsOther("Опрос", message, MyFontEnum.Blue);
+            ChatManager?.SendMessageAsOther(Author, message, AuthorColor, 0, MyFontEnum.White);
         }
 
         private static void Send(string message, ulong steamId)
         {
             //a target of 0 would send the message to everyone
             if (steamId != 0)
-                ChatManager?.SendMessageAsOther("Опрос", message, MyFontEnum.Blue, steamId);
+                ChatManager?.SendMessageAsOther(Author, message, AuthorColor, steamId, MyFontEnum.White);
         }
 
         private void Read()
