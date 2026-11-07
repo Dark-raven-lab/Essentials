@@ -88,19 +88,15 @@ namespace Essentials
                 _sessionManager.SessionStateChanged += SessionChanged;
             else
                 Log.Warn("No session manager.  MOTD won't work");
+            //File.Create keeps the file open, the reading below would fail on it
             homeDataPath = Path.Combine(StoragePath, "players.json");
-            if (!File.Exists(homeDataPath)) {
-                File.Create(homeDataPath);
-            }
-            
-
-
+            if (!File.Exists(homeDataPath))
+                File.Create(homeDataPath).Dispose();
             rankDataPath = Path.Combine(StoragePath, "ranks.json");
-            if (!File.Exists(rankDataPath)) {
-                File.Create(rankDataPath);
-            }
-            
-
+            if (!File.Exists(rankDataPath))
+                File.Create(rankDataPath).Dispose();
+            //read here too, so the plugin page shows the ranks before the world is loaded
+            ReadRankFiles();
 
             Instance = this;
             _pm = torch.Managers.GetManager<PatchManager>();
@@ -122,6 +118,41 @@ namespace Essentials
             }
         }
 
+        private void ReadRankFiles()
+        {
+            PlayerAccountModule.PlayersAccounts = ReadList<PlayerAccountModule.PlayerAccountData>(homeDataPath);
+            RanksAndPermissionsModule.Ranks = ReadList<RanksAndPermissionsModule.RankData>(rankDataPath);
+            //the cache holds the rank objects read before, it is built again on the next check
+            RanksAndPermissionsModule.PlayersInheritedRanksStore.Clear();
+            RankOperations.RaiseChanged();
+        }
+
+        /// <summary>
+        /// An unreadable file gives an empty list and is copied aside: the next save would overwrite it.
+        /// </summary>
+        private static List<T> ReadList<T>(string path)
+        {
+            try
+            {
+                var text = File.ReadAllText(path);
+                return string.IsNullOrWhiteSpace(text) ? new List<T>() : JsonConvert.DeserializeObject<List<T>>(text) ?? new List<T>();
+            }
+            catch (Exception e)
+            {
+                var broken = path + ".broken";
+                Log.Error(e, $"Failed to read {path}, copied it to {broken}");
+                try
+                {
+                    File.Copy(path, broken, true);
+                }
+                catch (Exception copyError)
+                {
+                    Log.Error(copyError, $"Failed to copy {path}");
+                }
+                return new List<T>();
+            }
+        }
+
         private void SessionChanged(ITorchSession session, TorchSessionState state)
         {
             var mpMan = Torch.CurrentSession.Managers.GetManager<IMultiplayerManagerServer>();
@@ -131,16 +162,8 @@ namespace Essentials
             switch (state)
             {
                 case TorchSessionState.Loading:
-                    string homeData = File.ReadAllText(homeDataPath);
-                    if (!string.IsNullOrEmpty(homeData)) {
-                        PlayerAccountModule.PlayersAccounts = JsonConvert.DeserializeObject<List<PlayerAccountModule.PlayerAccountData>>(File.ReadAllText(homeDataPath));
-                    }
-
-                    string rankdata = File.ReadAllText(rankDataPath);
-                    if (!string.IsNullOrEmpty(rankdata)) {
-                        RanksAndPermissionsModule.Ranks = JsonConvert.DeserializeObject<List<RanksAndPermissionsModule.RankData>>(File.ReadAllText(rankDataPath));
-                    }
-
+                    //again, the files may have been edited by hand since Torch started
+                    ReadRankFiles();
                     break;
 
                 case TorchSessionState.Loaded:
@@ -169,6 +192,8 @@ namespace Essentials
                     Mutes.Start();
                     Polls.Start();
                     _initilized = true;
+                    //the page allows the changes that need the game now
+                    RankOperations.RaiseChanged();
 
 
                     break;
@@ -191,6 +216,10 @@ namespace Essentials
                     Polls.Stop();
                     _bagTracker.Clear();
                     _removalTracker.Clear();
+                    break;
+
+                case TorchSessionState.Unloaded:
+                    RankOperations.RaiseChanged();
                     break;
             }
         }

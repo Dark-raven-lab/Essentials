@@ -116,6 +116,7 @@ namespace Essentials {
 
         public void SaveAccountData() {
             File.WriteAllText(EssentialsPlugin.Instance.homeDataPath, JsonConvert.SerializeObject(PlayersAccounts, Formatting.Indented));
+            RankOperations.RaiseChanged();
         }
 
         public void GenerateAccount(Torch.API.IPlayer player) {

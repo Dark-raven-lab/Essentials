@@ -39,59 +39,13 @@ namespace Essentials.Commands {
         [Command("delrank", "Удаляет ранг.")]
         [Permission(MyPromoteLevel.Admin)]
         public void DeleteRank(string name) {
-            RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(name);
-            if (rank == null) {
-                Context.Respond($"Ранга '{name}' не существует!");
-                return;
-            }
-            var defaultRank = EssentialsPlugin.Instance.Config.DefaultRank;
-            if (rank.RankName == defaultRank) {
-                Context.Respond("Нельзя удалить ранг по умолчанию. Сначала задайте другой через !pr setdefaultrank.");
-                return;
-            }
-
-            RanksAndPermissionsModule.Ranks.Remove(rank);
-            foreach (var other in RanksAndPermissionsModule.Ranks)
-                other.Inherits.RemoveAll(n => n == rank.RankName);
-            RanksAndPermissions.SaveRankData();
-
-            //ValidateRanks does this reassignment only on load. The reserved list is touched only when the flag differs, so slots given with !admin reserve survive
-            var defaultData = RanksAndPermissions.GetRankData(defaultRank);
-            var syncReserved = defaultData != null && defaultData.ReservedSlot != rank.ReservedSlot;
-            var moved = 0;
-            var reservedChanged = false;
-            foreach (var account in PlayerAccountModule.PlayersAccounts.Where(a => a.Rank == rank.RankName)) {
-                account.Rank = defaultRank;
-                if (syncReserved && SetReserved(account.SteamID, defaultData.ReservedSlot))
-                    reservedChanged = true;
-                moved++;
-            }
-            if (moved > 0)
-                AccModule.SaveAccountData();
-            if (reservedChanged)
-                MySandboxGame.ConfigDedicated.Save();
-            RanksAndPermissions.RebuildAllInheritedRanks();
-
-            Context.Respond($"Ранг '{rank.RankName}' удалён. Игроков переведено на ранг '{defaultRank}': {moved}.");
+            Context.Respond(RankOperations.DeleteRank(name));
         }
 
         [Command("setmaxhomes", "Задаёт, сколько домов могут иметь игроки ранга.")]
         [Permission(MyPromoteLevel.Admin)]
         public void SetMaxHomes(string rankName, int value) {
-            RanksAndPermissionsModule.RankData Rank = RanksAndPermissions.GetRankData(rankName);
-            if (Rank == null) {
-                Context.Respond($"Ранга '{rankName}' не существует!");
-                return;
-            }
-
-            if (value < 0) {
-                Context.Respond("Число домов не может быть отрицательным.");
-                return;
-            }
-
-            Rank.MaxHomes = value;
-            RanksAndPermissions.SaveRankData();
-            Context.Respond($"Игроки с рангом '{Rank.RankName}' теперь могут установить домов: {value}");
+            Context.Respond(RankOperations.SetMaxHomes(rankName, value));
         }
 
         [Command("reservedslot", "Включает (true) или выключает (false) резервный слот для ранга.")]
@@ -101,59 +55,73 @@ namespace Essentials.Commands {
                 Context.Respond("Аргумент должен быть true или false");
                 return;
             }
-            RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(rankName);
-            if (rank == null) {
-                Context.Respond($"Ранга '{rankName}' не существует!");
-                return;
-            }
-            rank.ReservedSlot = reserved;
-            RanksAndPermissions.SaveRankData();
-
-            var changed = 0;
-            foreach (var account in PlayerAccountModule.PlayersAccounts.Where(a => a.Rank == rank.RankName))
-                if (SetReserved(account.SteamID, reserved))
-                    changed++;
-            if (changed > 0)
-                MySandboxGame.ConfigDedicated.Save();
-
-            Context.Respond($"Резервный слот у ранга '{rank.RankName}' {(reserved ? "включён" : "выключен")}. Изменён список резерва для игроков: {changed}.");
+            Context.Respond(RankOperations.SetReservedSlot(rankName, reserved));
         }
 
         [Command("renamerank", "Переименовывает ранг, в том числе у игроков.")]
         [Permission(MyPromoteLevel.Admin)]
         public void RenameRank(string oldName, string newName) {
-            RanksAndPermissionsModule.RankData rank = RanksAndPermissions.GetRankData(oldName);
+            Context.Respond(RankOperations.RenameRank(oldName, newName));
+        }
+
+        [Command("setlevel", "Задаёт рангу уровень прав (None, Scripter, Moderator, SpaceMaster, Admin) и сразу даёт его игрокам ранга.")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void SetLevel(string rankName, string level) {
+            Context.Respond(RankOperations.SetLevel(rankName, level));
+        }
+
+        [Command("setprefix", "Задаёт префикс ника в чате для ранга. Без префикса убирает его.")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void SetPrefix(string rankName, string prefix = "") {
+            //the prefix may hold spaces, so it is the rest of the line
+            Context.Respond(RankOperations.SetPrefix(rankName, string.Join(" ", Context.Args.Skip(1))));
+        }
+
+        [Command("showprefix", "Включает (true) или выключает (false) префикс ранга в чате.")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void ShowPrefix(string rankName, string boolVal) {
+            if (!bool.TryParse(boolVal, out var show)) {
+                Context.Respond("Аргумент должен быть true или false");
+                return;
+            }
+            Context.Respond(RankOperations.SetShowPrefix(rankName, show));
+        }
+
+        [Command("info", "Показывает настройки, права и число игроков ранга.")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void Info(string rankName) {
+            var rank = RanksAndPermissions.GetRankData(rankName);
             if (rank == null) {
-                Context.Respond($"Ранга '{oldName}' не существует!");
-                return;
-            }
-            if (RanksAndPermissions.GetRankData(newName) != null) {
-                Context.Respond($"Ранг '{newName}' уже существует!");
+                Context.Respond(RankOperations.NotFound(rankName));
                 return;
             }
 
-            rank.RankName = newName;
-            foreach (var other in RanksAndPermissionsModule.Ranks)
-                for (var i = 0; i < other.Inherits.Count; i++)
-                    if (other.Inherits[i] == oldName)
-                        other.Inherits[i] = newName;
-            RanksAndPermissions.SaveRankData();
+            string List(List<string> items) => items.Count == 0 ? "нет" : string.Join(", ", items);
+            var sb = new StringBuilder($"Ранг {rank.RankName}");
+            if (rank.RankName == EssentialsPlugin.Instance.Config.DefaultRank)
+                sb.Append(" (по умолчанию)");
+            sb.Append($"\nПрефикс: {(string.IsNullOrEmpty(rank.Prefix) ? "нет" : rank.Prefix)}, {(rank.DisplayPrefix ? "показывается" : "не показывается")}");
+            sb.Append($"\nДомов: {rank.MaxHomes}, резервный слот: {(rank.ReservedSlot ? "да" : "нет")}, уровень прав: {rank.KeenLevelRank}");
+            sb.Append($"\nНаследует: {List(rank.Inherits)}");
+            sb.Append($"\nРазрешено: {List(rank.Permissions.Allowed)}");
+            sb.Append($"\nЗапрещено: {List(rank.Permissions.Disallowed)}");
+            sb.Append($"\nИгроков: {RankOperations.Members(rank.RankName).Count}");
+            Context.Respond(sb.ToString());
+        }
 
-            var renamed = 0;
-            foreach (var account in PlayerAccountModule.PlayersAccounts.Where(a => a.Rank == oldName)) {
-                account.Rank = newName;
-                renamed++;
+        [Command("members", "Показывает игроков ранга.")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void Members(string rankName) {
+            var rank = RanksAndPermissions.GetRankData(rankName);
+            if (rank == null) {
+                Context.Respond(RankOperations.NotFound(rankName));
+                return;
             }
-            if (renamed > 0)
-                AccModule.SaveAccountData();
 
-            var config = EssentialsPlugin.Instance.Config;
-            if (config.DefaultRank == oldName) {
-                config.DefaultRank = newName;
-                EssentialsPlugin.Instance.Save();
-            }
-
-            Context.Respond($"Ранг '{oldName}' переименован в '{newName}'. Игроков с этим рангом: {renamed}.");
+            var names = RankOperations.Members(rank.RankName).Select(a => a.Player ?? a.SteamID.ToString()).OrderBy(n => n).ToList();
+            Context.Respond(names.Count == 0
+                ? $"У ранга '{rank.RankName}' нет игроков."
+                : $"Игроки ранга '{rank.RankName}' ({names.Count}): {string.Join(", ", names)}");
         }
 
         [Command("setdefaultrank", "Задаёт ранг, который получают новые игроки.")]
@@ -211,14 +179,7 @@ namespace Essentials.Commands {
                 accounts.Add(data);
             }
 
-            data.Rank = rank.RankName;
-            AccModule.SaveAccountData();
-            if (SetReserved(data.SteamID, rank.ReservedSlot))
-                MySandboxGame.ConfigDedicated.Save();
-            MySession.Static.SetUserPromoteLevel(data.SteamID, RanksAndPermissions.ParseMyPromoteLevel(rank.KeenLevelRank));
-            RanksAndPermissions.RebuildInheritedRanks(data.SteamID);
-            Context.Respond($"Игроку {data.Player} задан ранг {rank.RankName}");
-            Log.Info($"Игроку {data.Player} задан ранг {rank.RankName}");
+            Context.Respond(RankOperations.SetPlayerRank(data, rank));
         }
 
         [Command("populate", "Отключена.")]
@@ -475,17 +436,6 @@ namespace Essentials.Commands {
             }
             Ranks = Ranks.TrimEnd(',');
             Context.Respond(Ranks);
-        }
-
-        private static bool SetReserved(ulong steamId, bool reserved) {
-            var list = MySandboxGame.ConfigDedicated.Reserved;
-            if (steamId == 0 || list.Contains(steamId) == reserved)
-                return false;
-            if (reserved)
-                list.Add(steamId);
-            else
-                list.Remove(steamId);
-            return true;
         }
     }
 }
