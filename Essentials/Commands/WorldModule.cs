@@ -482,8 +482,7 @@ namespace Essentials.Commands
 
         private static bool IsRecentPlayer(MyIdentity identity, DateTime seenAfter)
         {
-            var lastSeen = identity.LastLogoutTime > identity.LastLoginTime ? identity.LastLogoutTime : identity.LastLoginTime;
-            return Utilities.TryGetHumanPlayerId(identity.IdentityId, out _) && lastSeen >= seenAfter;
+            return Utilities.TryGetHumanPlayerId(identity.IdentityId, out _) && Utilities.GetLastSeen(identity) >= seenAfter;
         }
 
         private static int CleanupReputations(DateTime seenAfter)
