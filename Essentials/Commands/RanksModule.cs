@@ -48,6 +48,12 @@ namespace Essentials.Commands {
             Context.Respond(RankOperations.SetMaxHomes(rankName, value));
         }
 
+        [Command("setpcu", "Задаёт, сколько PCU добавляется к лимиту игроков ранга. Действует, когда в мире лимиты блоков «на игрока» и передача PCU выключена.")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void SetPcu(string rankName, int value) {
+            Context.Respond(RankOperations.SetPcuBonus(rankName, value));
+        }
+
         [Command("reservedslot", "Включает (true) или выключает (false) резервный слот для ранга.")]
         [Permission(MyPromoteLevel.Admin)]
         public void SetReservedSlot(string rankName, string boolVal) {
@@ -101,7 +107,7 @@ namespace Essentials.Commands {
             if (rank.RankName == EssentialsPlugin.Instance.Config.DefaultRank)
                 sb.Append(" (по умолчанию)");
             sb.Append($"\nПрефикс: {(string.IsNullOrEmpty(rank.Prefix) ? "нет" : rank.Prefix)}, {(rank.DisplayPrefix ? "показывается" : "не показывается")}");
-            sb.Append($"\nДомов: {rank.MaxHomes}, резервный слот: {(rank.ReservedSlot ? "да" : "нет")}, уровень прав: {rank.KeenLevelRank}");
+            sb.Append($"\nДомов: {rank.MaxHomes}, бонус PCU: {rank.PcuBonus}, резервный слот: {(rank.ReservedSlot ? "да" : "нет")}, уровень прав: {rank.KeenLevelRank}");
             sb.Append($"\nНаследует: {List(rank.Inherits)}");
             sb.Append($"\nРазрешено: {List(rank.Permissions.Allowed)}");
             sb.Append($"\nЗапрещено: {List(rank.Permissions.Disallowed)}");

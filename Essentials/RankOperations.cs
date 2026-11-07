@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using NLog;
 using Sandbox;
 using Sandbox.Game.World;
 using Torch.API.Session;
+using VRage.Game;
 
 namespace Essentials
 {
@@ -31,6 +33,7 @@ namespace Essentials
         private static readonly Logger Log = LogManager.GetCurrentClassLogger();
         private static readonly RanksAndPermissionsModule Ranks = new RanksAndPermissionsModule();
         private static readonly PlayerAccountModule Accounts = new PlayerAccountModule();
+        private static readonly MethodInfo AddPcu = typeof(MyBlockLimits).GetMethod("AddPCU", BindingFlags.Instance | BindingFlags.NonPublic);
 
         /// <summary>
         /// Raised on the thread that saved the ranks or the accounts, and when the world loads or unloads.
@@ -110,6 +113,7 @@ namespace Essentials
             if (reservedChanged)
                 MySandboxGame.ConfigDedicated.Save();
             Ranks.RebuildAllInheritedRanks();
+            SyncPcu(members);
 
             return $"Ранг '{rank.RankName}' удалён. Игроков переведено на ранг '{defaultRank}': {members.Count}.";
         }
@@ -206,6 +210,131 @@ namespace Essentials
             return $"Уровень прав ранга '{rank.RankName}': {rank.KeenLevelRank}. Применён к игрокам ранга: {members.Count}.";
         }
 
+        public static string SetPcuBonus(string name, int value)
+        {
+            var rank = Ranks.GetRankData(name);
+            if (rank == null)
+                return NotFound(name);
+            if (value < 0)
+                return "Бонус PCU не может быть отрицательным.";
+
+            rank.PcuBonus = value;
+            Ranks.SaveRankData();
+
+            var text = $"Бонус PCU ранга '{rank.RankName}': {value}.";
+            if (!EssentialsPlugin.Instance.Config.EnableRanks)
+                return text + " Ранги выключены: бонус применится после их включения и перезапуска сервера.";
+            if (!IsLive)
+                return text + " Игроки получат его при запуске сервера.";
+            if (MySession.Static.BlockLimitsEnabled != MyBlockLimitsEnabledEnum.PER_PLAYER)
+                return text + " Он не действует: в мире лимиты блоков не «на игрока».";
+            if (MySession.Static.Settings.EnablePcuTrading)
+                return text + " Он не действует: в мире включена передача PCU.";
+            return text + $" Изменён лимит у игроков: {SyncPcu(Members(rank.RankName))}.";
+        }
+
+        public static void SyncPcu(ulong steamId)
+        {
+            var account = PlayerAccountModule.PlayersAccounts.FirstOrDefault(a => a.SteamID == steamId);
+            if (account != null)
+                SyncPcu(new[] { account });
+        }
+
+        /// <summary>
+        /// Brings the PCU limit of the players to the bonus of their rank. The bonus goes to the PCU delta the world keeps
+        /// for each player (the one PCU trading moves). Without trading only this changes the delta, so what was given is
+        /// read from the world and survives a rollback of the save. Works only while the game runs with limits per player;
+        /// with trading on nothing is given, with ranks off every bonus is taken back. A player given a new identity (the
+        /// old one removed) gets the bonus again. Returns how many limits changed.
+        /// </summary>
+        public static int SyncPcu(IEnumerable<PlayerAccountModule.PlayerAccountData> accounts)
+        {
+            if (!IsLive || MySession.Static.BlockLimitsEnabled != MyBlockLimitsEnabledEnum.PER_PLAYER)
+                return 0;
+            if (AddPcu == null)
+            {
+                Log.Error("MyBlockLimits.AddPCU not found, rank PCU bonus is off");
+                return 0;
+            }
+
+            var save = false;
+
+            //traded PCU go to the same delta, so what was given could only be kept outside the world and a rollback of the
+            //save would put the two apart for good. The base is dropped, as trades change it: once trading is off, the
+            //record of what was given is trusted the first time
+            if (MySession.Static.Settings.EnablePcuTrading)
+            {
+                foreach (var account in accounts.Where(a => a.PcuBase.HasValue))
+                {
+                    account.PcuBase = null;
+                    save = true;
+                }
+                if (save)
+                    SaveAccounts();
+                return 0;
+            }
+
+            //with ranks off nobody has a rank bonus, so the ones given are taken back
+            var ranksOn = EssentialsPlugin.Instance.Config.EnableRanks;
+            var changed = 0;
+            //called from the world load and from the creation of a player, a failure must not break either
+            try
+            {
+                foreach (var account in accounts)
+                {
+                    if (account.SteamID == 0)
+                        continue;
+                    var identity = MySession.Static.Players.TryGetIdentity(MySession.Static.Players.TryGetIdentityId(account.SteamID));
+                    if (identity == null)
+                        continue;
+
+                    var target = ranksOn ? Ranks.GetRankData(account.Rank)?.PcuBonus ?? 0 : 0;
+                    var limits = identity.BlockLimits;
+                    //the old identity was removed and the player came back with a new one, which starts without the bonus
+                    var newIdentity = account.PcuIdentity.HasValue && account.PcuIdentity != identity.IdentityId;
+                    var given = newIdentity ? 0
+                        : account.PcuBase.HasValue ? limits.TransferedDelta - account.PcuBase.Value
+                        : account.PcuBonus;
+                    if (given != target)
+                    {
+                        AddPcu.Invoke(limits, new object[] { target - given });
+                        changed++;
+                        Log.Info($"PCU bonus of {account.Player}: {given} -> {target}");
+                    }
+
+                    //nothing given and nothing kept leaves the account as it is
+                    var rest = target == 0 && !account.PcuBase.HasValue && !newIdentity ? (int?)null : limits.TransferedDelta - target;
+                    var owner = target == 0 && !rest.HasValue ? (long?)null : identity.IdentityId;
+                    if (account.PcuBonus != target || account.PcuBase != rest || account.PcuIdentity != owner)
+                    {
+                        account.PcuBonus = target;
+                        account.PcuBase = rest;
+                        account.PcuIdentity = owner;
+                        save = true;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "Rank PCU bonus failed");
+            }
+            if (save)
+                SaveAccounts();
+            return changed;
+        }
+
+        private static void SaveAccounts()
+        {
+            try
+            {
+                Accounts.SaveAccountData();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "Saving the accounts after the rank PCU bonus failed");
+            }
+        }
+
         public static string SetPrefix(string name, string prefix)
         {
             var rank = Ranks.GetRankData(name);
@@ -282,6 +411,7 @@ namespace Essentials
                 MySandboxGame.ConfigDedicated.Save();
             MySession.Static.SetUserPromoteLevel(account.SteamID, Ranks.ParseMyPromoteLevel(rank.KeenLevelRank));
             Ranks.RebuildInheritedRanks(account.SteamID);
+            SyncPcu(new[] { account });
             Log.Info($"Игроку {account.Player} задан ранг {rank.RankName}");
             return $"Игроку {account.Player} задан ранг {rank.RankName}";
         }

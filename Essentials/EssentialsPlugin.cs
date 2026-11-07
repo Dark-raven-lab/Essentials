@@ -176,6 +176,9 @@ namespace Essentials
                         mpMan.PlayerJoined += RanksAndPermissions.RegisterInheritedRanks;
                         AccModule.ValidateRanks();
                     }
+                    //all known players at once, a player new to the world when their identity appears
+                    RankOperations.SyncPcu(PlayerAccountModule.PlayersAccounts);
+                    MySession.Static.Players.PlayersChanged += SyncPcuOfNewPlayer;
 
                     mpMan.PlayerLeft += ResetMotdOnce;
                     cmdMan.OnCommandExecuting +=RanksAndPermissions.HasCommandPermission;
@@ -209,6 +212,7 @@ namespace Essentials
                         mpMan.PlayerLeft -= ResetMotdOnce;
                         mpMan.PlayerJoined -= MotdOnce;
                         MyEntities.OnEntityAdd -= EntityAdded;
+                        MySession.Static.Players.PlayersChanged -= SyncPcuOfNewPlayer;
                     }
 
 
@@ -222,6 +226,12 @@ namespace Essentials
                     RankOperations.RaiseChanged();
                     break;
             }
+        }
+
+        private static void SyncPcuOfNewPlayer(bool added, MyPlayer.PlayerId id)
+        {
+            if (added && id.SerialId == 0)
+                RankOperations.SyncPcu(id.SteamId);
         }
 
         private Dictionary<long, List<MyInventoryBagEntity>> _bagTracker = new Dictionary<long, List<MyInventoryBagEntity>>();

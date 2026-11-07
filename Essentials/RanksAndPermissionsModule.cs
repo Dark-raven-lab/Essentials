@@ -55,6 +55,10 @@ namespace Essentials {
 
             [JsonProperty(Order = 9)]
             public Dictionary<Guid, object> PluginData { get; set; } = new Dictionary<Guid, object>();
+
+            /// <summary>PCU added to the limit of the players of the rank, see <see cref="RankOperations.SyncPcu(IEnumerable{PlayerAccountModule.PlayerAccountData})"/>.</summary>
+            [JsonProperty(Order = 10)]
+            public int PcuBonus { get; set; } = 0;
         }
 
         public void UpdateRankObject(RankData obj) {

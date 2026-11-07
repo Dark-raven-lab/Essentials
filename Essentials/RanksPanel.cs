@@ -413,8 +413,22 @@ namespace Essentials
                 }
             }
 
+            [Display(Order = 5, Name = "Бонус PCU", Description = "Сколько PCU добавляется к лимиту игроков ранга. Действует, когда в мире лимиты блоков «на игрока» и передача PCU выключена. При выключенных рангах снимается у всех. Без запущенного сервера игроки получат новый бонус при запуске.")]
+            public int PcuBonus
+            {
+                get => _data.PcuBonus;
+                set
+                {
+                    if (value == _data.PcuBonus)
+                        return;
+                    if (value < 0)
+                        throw Refuse("Бонус PCU не может быть отрицательным.");
+                    Send(name => RankOperations.SetPcuBonus(name, value));
+                }
+            }
+
             [NeedsServer]
-            [Display(Order = 5, Name = "Резервный слот", Description = "Игроки ранга заходят на полный сервер. Сразу меняет список резерва для всех игроков ранга. Меняется только при запущенном сервере.")]
+            [Display(Order = 6, Name = "Резервный слот", Description = "Игроки ранга заходят на полный сервер. Сразу меняет список резерва для всех игроков ранга. Меняется только при запущенном сервере.")]
             public bool ReservedSlot
             {
                 get => _data.ReservedSlot;
@@ -426,7 +440,7 @@ namespace Essentials
             }
 
             [NeedsServer]
-            [Display(Order = 6, Name = "Уровень прав", Description = "Уровень прав Space Engineers. Сразу даётся всем игрокам ранга, а при смене ранга игроку — ему. Scripter сейчас даёт SpaceMaster. Меняется только при запущенном сервере.")]
+            [Display(Order = 7, Name = "Уровень прав", Description = "Уровень прав Space Engineers. Сразу даётся всем игрокам ранга, а при смене ранга игроку — ему. Scripter сейчас даёт SpaceMaster. Меняется только при запущенном сервере.")]
             public RankOperations.Level Level
             {
                 get => Enum.TryParse(_data.KeenLevelRank, out RankOperations.Level level) ? level : RankOperations.Level.None;
@@ -437,7 +451,7 @@ namespace Essentials
                 }
             }
 
-            [Display(Order = 7, Name = "Наследует", Description = "Ранги через запятую, чьи права получает этот ранг. Свои права ранга главнее наследуемых.")]
+            [Display(Order = 8, Name = "Наследует", Description = "Ранги через запятую, чьи права получает этот ранг. Свои права ранга главнее наследуемых.")]
             public string Inherits
             {
                 get => Format(_data.Inherits);
@@ -456,7 +470,7 @@ namespace Essentials
             }
 
             [Multiline]
-            [Display(Order = 8, Name = "Разрешённые команды", Description = "Команды без !, через запятую или с новой строки, например motd, pr listranks. * — все команды.")]
+            [Display(Order = 9, Name = "Разрешённые команды", Description = "Команды без !, через запятую или с новой строки, например motd, pr listranks. * — все команды.")]
             public string Allowed
             {
                 get => Format(_data.Permissions.Allowed);
@@ -464,7 +478,7 @@ namespace Essentials
             }
 
             [Multiline]
-            [Display(Order = 9, Name = "Запрещённые команды", Description = "Команды без !, через запятую или с новой строки. * — все команды, кроме разрешённых. Запрет главнее разрешения.")]
+            [Display(Order = 10, Name = "Запрещённые команды", Description = "Команды без !, через запятую или с новой строки. * — все команды, кроме разрешённых. Запрет главнее разрешения.")]
             public string Disallowed
             {
                 get => Format(_data.Permissions.Disallowed);
