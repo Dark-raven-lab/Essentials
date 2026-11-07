@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -8,6 +9,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Torch.Commands;
 using Torch.Commands.Permissions;
 using Torch.Views;
@@ -151,6 +153,7 @@ namespace Essentials
                 custom.SetBinding(DataContextProperty, property.Name);
                 custom.Margin = new Thickness(5);
                 HideInnerFilter(custom);
+                AddMoveButtons(custom);
                 custom.PreviewMouseWheel += ForwardMouseWheel;
                 return custom;
             }
@@ -208,6 +211,79 @@ namespace Essentials
             row.Visibility = Visibility.Collapsed;
         }
 
+        // The collection editor of Torch has only "Add" and "Remove", while the order matters: the steps of an auto
+        // command run from the top. "▲" and "▼" (and Ctrl+Up, Ctrl+Down in the list) move the selected item. Torch
+        // places its buttons in one grid cell by their left margins, so these follow "Remove" the same way. The fields
+        // are internal; if Torch renames them, the buttons are just not added.
+        private static void AddMoveButtons(FrameworkElement editor)
+        {
+            const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Instance;
+            const double width = 40, gap = 10;
+            var type = editor?.GetType();
+            var list = type?.GetField("ElementList", flags)?.GetValue(editor) as ListBox;
+            var remove = type?.GetField("RemoveButton", flags)?.GetValue(editor) as Button;
+            // without a set width the place after "Remove" is not known before layout
+            if (list == null || !(remove?.Parent is Grid grid) || double.IsNaN(remove.Width))
+                return;
+
+            double left = remove.Margin.Left + remove.Width + gap;
+            grid.Children.Add(CreateMoveButton(list, remove, -1, "▲", "Поднять выбранный элемент выше (Ctrl+↑)", left, width));
+            grid.Children.Add(CreateMoveButton(list, remove, 1, "▼", "Опустить выбранный элемент ниже (Ctrl+↓)", left + width + 5, width));
+
+            list.PreviewKeyDown += (sender, e) =>
+            {
+                if (Keyboard.Modifiers != ModifierKeys.Control || (e.Key != Key.Up && e.Key != Key.Down))
+                    return;
+                e.Handled = true;
+                MoveSelected(list, e.Key == Key.Up ? -1 : 1);
+            };
+        }
+
+        private static Button CreateMoveButton(ListBox list, Button remove, int offset, string text, string toolTip, double left, double width)
+        {
+            var button = new Button
+            {
+                Content = text,
+                Width = width,
+                // the buttons of Torch keep their own height at the top of a higher row
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = remove.VerticalAlignment,
+                Margin = new Thickness(left, 0, 0, 0),
+                ToolTip = toolTip
+            };
+            Grid.SetRow(button, Grid.GetRow(remove));
+            Grid.SetColumn(button, Grid.GetColumn(remove));
+            button.Click += (sender, e) => MoveSelected(list, offset);
+            return button;
+        }
+
+        // the list shows the edited ObservableCollection<T> itself, so Move reorders the config and raises its change
+        private static void MoveSelected(ListBox list, int offset)
+        {
+            var item = list.SelectedItem;
+            var items = list.ItemsSource as IList;
+            if (item == null || items == null)
+                return;
+
+            int from = items.IndexOf(item);
+            int to = from + offset;
+            var move = items.GetType().GetMethod("Move", new[] { typeof(int), typeof(int) });
+            if (from < 0 || to < 0 || to >= items.Count || move == null)
+                return;
+
+            move.Invoke(items, new object[] { from, to });
+
+            // Torch refreshes the list on every change, so the item is selected again and, for the next Ctrl+arrow,
+            // focused once its row is made anew
+            list.SelectedItem = item;
+            list.ScrollIntoView(item);
+            list.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (list.ItemContainerGenerator.ContainerFromItem(item) is ListBoxItem row && list.IsKeyboardFocusWithin)
+                    row.Focus();
+            }), DispatcherPriority.Loaded);
+        }
+
         // The class handler sees the collection windows of every plugin, only the ones with items of this plugin are
         // resized. The size is kept inside the screen and the window is centered on its owner again.
         private static void OnCollectionWindowLoaded(object sender, RoutedEventArgs e)
@@ -221,6 +297,8 @@ namespace Essentials
             var itemType = list?.ItemsSource?.GetType().GenericTypeArguments.FirstOrDefault();
             if (itemType?.Assembly != typeof(ConfigControl).Assembly)
                 return;
+
+            AddMoveButtons(editor as FrameworkElement);
 
             var area = SystemParameters.WorkArea;
             window.Width = Math.Min(CollectionWindowWidth, area.Width);
