@@ -2,6 +2,7 @@
 using Sandbox.Game.EntityComponents;
 using Sandbox.Game.World;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -259,6 +260,90 @@ namespace Essentials.Commands
                 }
 
                 return grid => grid.BigOwners.Contains(identityId);
+            }
+        }
+
+        [Condition("ownerinactive", helpText: "Ищет гриды игроков, которые вместе с сокланами не заходили указанное число дней (1–36500). Грид остаётся, если хоть один его блок принадлежит недавно заходившему игроку. Гриды NPC и ботов не подходят. Гриды без владельца условие тоже пропускает: если указать его одно, удалятся и они. Указывайте его вместе с другими условиями, например hasgridtype ship или blockslessthan 100.")]
+        public static bool OwnerInactive(MyCubeGrid grid, InactiveOwnerFilter filter)
+        {
+            return filter.Matches(grid);
+        }
+
+        /// <summary>
+        /// Built once per scan: the cutoff is fixed and each owner is looked up once, whatever thread the grid lands on.
+        /// </summary>
+        public sealed class InactiveOwnerFilter
+        {
+            private enum OwnerState
+            {
+                NotHuman,
+                Active,
+                Inactive
+            }
+
+            private readonly DateTime _cutoff;
+            private readonly ConcurrentDictionary<long, OwnerState> _states = new ConcurrentDictionary<long, OwnerState>();
+            private readonly Func<long, OwnerState> _classify;
+
+            public InactiveOwnerFilter(string days)
+            {
+                if (!int.TryParse(days, out var d) || d < 1 || d > 36500)
+                    throw new ArgumentException("число дней должно быть от 1 до 36500");
+
+                _cutoff = DateTime.Now - TimeSpan.FromDays(d);
+                _classify = Classify;
+            }
+
+            public bool Matches(MyCubeGrid grid)
+            {
+                // A grid without owners of its own (wheel, rotor or piston head) gets the parent's BigOwners on the
+                // game thread only, so it leaves the decision to the owned grids of its group.
+                var smallOwners = grid.SmallOwners;
+                if (smallOwners.Count == 0)
+                    return true;
+
+                // Empty when none of the owned blocks is functional; a subgrid gets the parent's owners instead,
+                // but on the game thread only.
+                var bigOwners = grid.BigOwners;
+                if (bigOwners.Count == 0)
+                    return false;
+
+                // The main owners must all be inactive players, and an active player keeps the grid even with
+                // a single block. NPC and bot blocks among the rest don't count.
+                return bigOwners.All(o => GetState(o) == OwnerState.Inactive)
+                       && smallOwners.All(o => GetState(o) != OwnerState.Active);
+            }
+
+            private OwnerState GetState(long identityId)
+            {
+                return _states.GetOrAdd(identityId, _classify);
+            }
+
+            // A player is inactive when neither they nor any player of their faction has been seen since the cutoff.
+            private OwnerState Classify(long identityId)
+            {
+                if (!Utilities.TryGetHumanPlayerId(identityId, out _))
+                    return OwnerState.NotHuman;
+
+                if (!IsAbsent(identityId))
+                    return OwnerState.Active;
+
+                var faction = MySession.Static.Factions.GetPlayerFaction(identityId);
+                var mateSeen = faction != null && faction.Members.Keys.Any(id =>
+                    id != identityId && Utilities.TryGetHumanPlayerId(id, out _) && !IsAbsent(id));
+
+                return mateSeen ? OwnerState.Active : OwnerState.Inactive;
+            }
+
+            // Expects a human player. A player whose identity can't be found counts as seen, so their grids stay.
+            private bool IsAbsent(long identityId)
+            {
+                var players = MySession.Static.Players;
+                if (players.IsPlayerOnline(identityId))
+                    return false;
+
+                var identity = players.TryGetIdentity(identityId);
+                return identity != null && Utilities.GetLastSeen(identity) < _cutoff;
             }
         }
 

@@ -224,6 +224,12 @@ namespace Essentials
             return MySession.Static.Players.TryGetPlayerId(identityId, out playerId) && playerId.SteamId != 0 && playerId.SerialId == 0;
         }
 
+        //the game refreshes the logout time of the players online at every world save
+        public static DateTime GetLastSeen(MyIdentity identity)
+        {
+            return identity.LastLogoutTime > identity.LastLoginTime ? identity.LastLogoutTime : identity.LastLoginTime;
+        }
+
         /// <summary>
         /// Finds any human player of the world, online or not. Of the players with the same name the one online comes first.
         /// </summary>
